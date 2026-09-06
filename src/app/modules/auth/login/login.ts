@@ -20,6 +20,7 @@ import { httpErrorMessage } from '../../../../common/http/http-error-message';
 import { AuthService } from '../services/auth.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { EntitlementsService } from '../../../../common/entitlements/entitlements.service';
+import { PricingDefaultsService } from '../../../../common/pricing/pricing-defaults.service';
 
 @Component({
   selector: 'app-login',
@@ -32,6 +33,7 @@ export class Login {
   private readonly authService = inject(AuthService);
   private readonly organizationService = inject(OrganizationService);
   private readonly entitlements = inject(EntitlementsService);
+  private readonly pricingDefaults = inject(PricingDefaultsService);
   private readonly router = inject(Router);
 
   private readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
@@ -63,8 +65,9 @@ export class Login {
     this.loading.set(true);
     this.error.set(null);
 
-    // Hydrate the org + plan entitlements before entering the app, so the shell renders branded
-    // and feature-gated (RFID, label printing) on first paint rather than after a refresh.
+    // Hydrate the org, plan entitlements, and pricing defaults before entering the app, so the
+    // shell renders branded and feature-gated (RFID, label printing) on first paint rather than
+    // after a refresh, and the product form can price from cost immediately.
     this.authService
       .login(this.form.getRawValue())
       .pipe(
@@ -72,6 +75,7 @@ export class Login {
           forkJoin([
             this.organizationService.loadActiveOrganization(),
             this.entitlements.load(),
+            this.pricingDefaults.load(),
           ]),
         ),
       )

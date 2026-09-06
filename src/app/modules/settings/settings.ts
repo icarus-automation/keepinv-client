@@ -16,16 +16,24 @@ import { httpErrorMessage } from '../../../common/http/http-error-message';
 import { OrganizationService } from '../organization/services/organization.service';
 import { orgMonogram, orgRoleLabel } from '../organization/organization.util';
 import { OrganizationLogo } from './organization-logo';
+import { PricingDefaultsForm } from './pricing-defaults-form';
 
 /**
  * Two scopes on one page: the organization (shared across the team, editable by
- * owners and admins) and per-device display preferences (this browser only).
+ * owners and admins, covering identity and the default pricing rule) and per-device
+ * display preferences (this browser only).
  * Org reads and writes go through {@link OrganizationService}; owners/admins can
  * upload/replace/remove the logo directly via {@link OrganizationLogo}.
  */
 @Component({
   selector: 'app-settings',
-  imports: [ReactiveFormsModule, ButtonModule, InputTextModule, OrganizationLogo],
+  imports: [
+    ReactiveFormsModule,
+    ButtonModule,
+    InputTextModule,
+    OrganizationLogo,
+    PricingDefaultsForm,
+  ],
   templateUrl: './settings.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

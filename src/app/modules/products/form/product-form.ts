@@ -43,6 +43,8 @@ import {
   SupplierPlatform,
 } from '../../suppliers/types/supplier.types';
 import { httpErrorMessage } from '../../../../common/http/http-error-message';
+import { PricingDefaultsService } from '../../../../common/pricing/pricing-defaults.service';
+import { pricingRuleLabel } from '../../../../common/pricing/pricing-defaults';
 
 /** A record with the minimum a `p-select` option needs: an id and a name to show. */
 interface NamedRecord {
@@ -96,6 +98,7 @@ export class ProductForm implements OnInit {
   private readonly categories = inject(CategoriesService);
   private readonly suppliers = inject(SuppliersService);
   private readonly locations = inject(LocationsService);
+  private readonly pricingDefaults = inject(PricingDefaultsService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Present in edit mode; null/undefined in create mode. */
@@ -140,6 +143,20 @@ export class ProductForm implements OnInit {
   /** True once the field holds any code (manufacturer or internal). Generate hides behind this. */
   protected readonly hasBarcode = computed(() => this.barcodeValue().trim().length > 0);
 
+  /**
+   * Set once the operator types their own selling price: the org default stops following the cost
+   * from then on. The field itself is never disabled. A default is a starting point, not a cap, and
+   * pricing a single item above it is routine.
+   */
+  protected readonly sellingPriceOverridden = signal(false);
+  /**
+   * The org rule in words ("30% markup on cost"), for the create form's pricing hint. Null in edit
+   * mode and when the org set no default, which are exactly the cases where nothing is auto-priced.
+   */
+  protected readonly pricingRule = computed(() =>
+    this.isEdit() ? null : pricingRuleLabel(this.pricingDefaults.defaults()),
+  );
+
   /** Reorder platform choices (icon + label), shared with the suppliers channel picker. */
   protected readonly platformOptions = [...SUPPLIER_PLATFORMS];
   /** Set once the operator touches the platform select: stop auto-detecting from the URL after that. */
@@ -168,6 +185,19 @@ export class ProductForm implements OnInit {
           emitEvent: false,
         });
       });
+
+    // Create mode: keep the selling price following the cost through the org's default pricing
+    // rule, so nobody has to open a calculator to fill this form. Edit mode never touches it: the
+    // saved price is the operator's, whatever rule was in force when they set it.
+    this.form.controls.costPrice.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((cost) => this.applyPricingDefault(cost));
+
+    // A change reaching this subscription came from the field itself: every automatic write below
+    // is silent (emitEvent: false), so an operator's own price is never mistaken for the default's.
+    this.form.controls.sellingPrice.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.sellingPriceOverridden.set(true));
   }
 
   ngOnInit(): void {
@@ -175,6 +205,28 @@ export class ProductForm implements OnInit {
     // form seeds with the product's current values before the first render.
     this.seedFromProduct();
     this.loadOptions();
+  }
+
+  /**
+   * Rewrites the selling price from the current cost. No-ops in edit mode, once the operator has
+   * typed their own price, or when the org configured no default. Each of those means the value in
+   * the field belongs to someone other than this rule.
+   */
+  private applyPricingDefault(costPrice: number | null): void {
+    if (this.isEdit() || this.sellingPriceOverridden()) {
+      return;
+    }
+    const sellingPrice = this.pricingDefaults.sellingPriceFor(costPrice);
+    if (sellingPrice === null) {
+      return;
+    }
+    this.form.controls.sellingPrice.setValue(sellingPrice, { emitEvent: false });
+  }
+
+  /** Hands the selling price back to the org default after a manual override. */
+  protected restorePricingDefault(): void {
+    this.sellingPriceOverridden.set(false);
+    this.applyPricingDefault(this.form.controls.costPrice.value);
   }
 
   private seedFromProduct(): void {

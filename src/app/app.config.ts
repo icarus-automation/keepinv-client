@@ -17,6 +17,7 @@ import { AuthService } from './modules/auth/services/auth.service';
 import { OrganizationService } from './modules/organization/services/organization.service';
 import { EntitlementsService } from '../common/entitlements/entitlements.service';
 import { PreferencesService } from '../common/preferences/preferences.service';
+import { PricingDefaultsService } from '../common/pricing/pricing-defaults.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -31,10 +32,15 @@ export const appConfig: ApplicationConfig = {
       const auth = inject(AuthService);
       const organizations = inject(OrganizationService);
       const entitlements = inject(EntitlementsService);
+      const pricingDefaults = inject(PricingDefaultsService);
       return auth.loadSession().pipe(
         switchMap((user) =>
           user
-            ? forkJoin([organizations.loadActiveOrganization(), entitlements.load()])
+            ? forkJoin([
+                organizations.loadActiveOrganization(),
+                entitlements.load(),
+                pricingDefaults.load(),
+              ])
             : of(null),
         ),
       );

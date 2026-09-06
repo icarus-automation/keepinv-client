@@ -190,7 +190,7 @@ export class Layout {
       breadcrumb = (snapshot.data['breadcrumb'] as Breadcrumb | undefined) ?? breadcrumb;
       snapshot = snapshot.firstChild;
     }
-    return { url: this.router.url, title: title ?? 'AssetWise', breadcrumb: breadcrumb ?? null };
+    return { url: this.router.url, title: title ?? 'keep inv', breadcrumb: breadcrumb ?? null };
   }
 
   /** Header chrome. Tools hides entirely when the user's plan and role unlock none of them. */

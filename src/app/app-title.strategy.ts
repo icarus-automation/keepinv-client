@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 
-const APP_NAME = 'AssetWise';
+const APP_NAME = 'keep inv';
 
 /**
  * Browser tab title, driven by each route's `title`. A counter often runs several tabs

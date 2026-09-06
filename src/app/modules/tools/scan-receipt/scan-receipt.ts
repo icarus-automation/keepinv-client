@@ -22,6 +22,8 @@ import { SelectModule } from 'primeng/select';
 import { CategoriesService } from '../../categories/services/categories.service';
 import { LocationsService } from '../../locations/services/locations.service';
 import { httpErrorMessage } from '../../../../common/http/http-error-message';
+import { PricingDefaultsService } from '../../../../common/pricing/pricing-defaults.service';
+import { equivalentMarkupPercent, pricingRuleLabel } from '../../../../common/pricing/pricing-defaults';
 import { ReceiptImportsService } from './services/receipt-imports.service';
 import {
   RECEIPT_ACCEPT,
@@ -71,6 +73,7 @@ export class ScanReceipt {
   private readonly receiptImports = inject(ReceiptImportsService);
   private readonly categories = inject(CategoriesService);
   private readonly locations = inject(LocationsService);
+  private readonly pricingDefaults = inject(PricingDefaultsService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -104,6 +107,20 @@ export class ScanReceipt {
   protected readonly categoryOptions = signal<NamedRecord[]>([]);
   protected readonly locationOptions = signal<NamedRecord[]>([]);
   protected readonly defaultsOpen = signal(false);
+
+  /**
+   * The org's pricing rule expressed as the markup this import's API takes, and the rule in words
+   * for the hint beside it. A margin converts exactly and is then rounded to the two decimals the
+   * field accepts, so a very large unit cost can land a few centavos off what the product form
+   * would give. Every line price is on screen before the import commits.
+   */
+  private readonly defaultMarkupPercent = computed(() =>
+    equivalentMarkupPercent(this.pricingDefaults.defaults()),
+  );
+  /** Null whenever nothing was prefilled, so the hint never describes a number that isn't there. */
+  protected readonly pricingRule = computed(() =>
+    this.defaultMarkupPercent() === null ? null : pricingRuleLabel(this.pricingDefaults.defaults()),
+  );
 
   private readonly reviewHeading = viewChild<ElementRef<HTMLElement>>('reviewHeading');
   private readonly doneHeading = viewChild<ElementRef<HTMLElement>>('doneHeading');
@@ -331,7 +348,9 @@ export class ScanReceipt {
       categoryId: null,
       locationId: null,
       reorderPoint: null,
-      markupPercent: null,
+      // Seeded from the org's pricing default so the operator confirms a number instead of
+      // recalling one. Still editable: a single delivery often prices differently.
+      markupPercent: this.defaultMarkupPercent(),
     });
     this.phase.set('review');
     setTimeout(() => this.reviewHeading()?.nativeElement.focus());

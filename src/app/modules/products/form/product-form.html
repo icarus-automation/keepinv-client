@@ -102,7 +102,7 @@
     <!-- Pricing -->
     <fieldset class="space-y-4">
       <legend class="text-sm font-semibold tracking-tight text-ink">Pricing</legend>
-      <div class="grid items-end gap-4 sm:grid-cols-2">
+      <div class="grid items-start gap-4 sm:grid-cols-2">
         <div class="flex flex-col gap-1.5">
           <label for="pf-cost" class="text-sm font-medium">Cost price</label>
           <p-inputnumber
@@ -125,9 +125,27 @@
             currency="PHP"
             locale="en-PH"
             [min]="0"
+            [ariaDescribedBy]="pricingRule() ? 'pf-selling-hint' : undefined"
             styleClass="w-full"
             inputStyleClass="w-full text-sm tabular-nums"
           />
+          <!-- Only in create mode, and only once the org has set a default pricing rule. -->
+          @if (pricingRule(); as rule) {
+            <p id="pf-selling-hint" class="text-xs text-muted">
+              @if (sellingPriceOverridden()) {
+                Your own price, kept as typed.
+                <button
+                  type="button"
+                  (click)="restorePricingDefault()"
+                  class="rounded font-medium text-ink underline decoration-line underline-offset-2 outline-none hover:decoration-ink focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter"
+                >
+                  Price at {{ rule }}
+                </button>
+              } @else {
+                Priced from cost at your {{ rule }} default. Type your own to override it.
+              }
+            </p>
+          }
         </div>
       </div>
     </fieldset>
