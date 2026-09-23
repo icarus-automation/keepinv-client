@@ -6,7 +6,7 @@
         {{ isEdit() ? 'Edit product' : 'New product' }}
       </h2>
       <p class="mt-0.5 text-sm text-muted">
-        {{ isEdit() ? 'Update the catalog details for this item.' : 'Add an item to the catalog. Stock is set later through movements.' }}
+        {{ isEdit() ? 'Catalog details for this item.' : 'Add to the catalog. Set stock later with a movement.' }}
       </p>
     </div>
   </div>
@@ -45,7 +45,7 @@
             [invalid]="form.controls.sku.touched && form.controls.sku.invalid"
             class="w-full text-sm tabular-nums"
           />
-          <p id="pf-sku-help" class="text-xs text-muted">The product's identity. How you find and refer to it.</p>
+          <p id="pf-sku-help" class="text-xs text-muted">How you look this item up.</p>
         </div>
         <div class="flex flex-col gap-1.5">
           <label for="pf-brand" class="text-sm font-medium">
@@ -64,7 +64,7 @@
         </div>
         <div class="flex flex-col gap-1.5 sm:col-span-2">
           <label for="pf-barcode" class="text-sm font-medium">
-            Barcode <span class="font-normal text-muted">(optional, for scanning)</span>
+            Barcode <span class="font-normal text-muted">(optional)</span>
           </label>
           <div class="flex items-start gap-2">
             <input
@@ -91,9 +91,7 @@
             />
           </div>
           <p id="pf-barcode-help" class="text-xs text-muted">
-            Used to scan this item at the counter. Scan or type
-            the maker's barcode if the box has one, or generate an internal code to print your own
-            label. Leave blank to skip scanning or tag it later.
+            Scan at the counter. Use the maker's code or generate one to print.
           </p>
         </div>
       </div>
@@ -142,7 +140,7 @@
                   Price at {{ rule }}
                 </button>
               } @else {
-                Priced from cost at your {{ rule }} default. Type your own to override it.
+                Priced from cost at your {{ rule }} default. Type a different price to override.
               }
             </p>
           }
@@ -175,7 +173,7 @@
             <label for="pf-serialized" class="text-sm font-medium">Track serial numbers</label>
           </div>
           <p class="text-xs text-muted">
-            For items tracked one by one. Each unit's serial is recorded when stock arrives.
+            Each unit gets its own serial when stock arrives.
           </p>
         </div>
       </div>
@@ -234,8 +232,7 @@
           </p-select>
         </div>
         <p id="pf-reorder-url-help" class="text-xs text-muted sm:col-span-2">
-          A direct link to buy this exact item again. The Reorder button uses it to open the store in
-          one click when stock runs low. The platform sets the icon and fills itself from the link.
+          Opens this store when stock is low. Platform follows the link.
         </p>
       </div>
     </fieldset>

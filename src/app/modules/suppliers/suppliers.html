@@ -1,7 +1,6 @@
 <div class="page">
   <p class="max-w-prose text-sm text-muted">
-    The vendors you buy stock from. Keep their contact details and reorder channels here so
-    reordering stock is quick. Products link to a supplier once the inventory module is in place.
+    Vendors you buy from, with contacts and reorder links.
   </p>
 
   <!-- Quick add: name only, stays focused for rapid entry. Details are filled in the pane. -->
@@ -46,7 +45,7 @@
     </div>
   } @else if (loadError()) {
     <div class="mt-8 rounded-lg border border-line bg-counter px-6 py-12 text-center">
-      <p class="text-sm font-medium text-ink">Couldn't load suppliers</p>
+      <p class="text-sm font-medium text-ink">Could not load suppliers</p>
       <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
         The server didn't respond. Check your connection and try again.
       </p>
@@ -65,7 +64,7 @@
       </span>
       <p class="mt-3 text-sm font-medium text-ink">No suppliers yet</p>
       <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-        Add your first supplier above, then add their contact details and reorder channels.
+        Add a supplier above.
       </p>
     </div>
   } @else {
@@ -166,7 +165,7 @@
               </span>
               <p class="mt-3 text-sm font-medium text-ink">Select a supplier</p>
               <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-                Pick a supplier from the list to see contact details and reorder channels.
+                Pick a supplier to see contacts and reorder links.
               </p>
             </div>
           </div>

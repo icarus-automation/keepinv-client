@@ -49,7 +49,7 @@ import { ImageCropperComponent, ImageCroppedEvent } from 'ngx-image-cropper';
 
       @if (loadFailed()) {
         <p role="alert" class="mt-2 text-xs text-danger">
-          Couldn't open this image. Try a different JPG, PNG, or WEBP file.
+          Could not open this image. Try a different JPG, PNG, or WEBP file.
         </p>
       }
 
@@ -79,7 +79,7 @@ export class ImageCropDialog {
   readonly file = input<File | null>(null);
   readonly header = input('Crop to square');
   readonly description = input(
-    'Product photos are square. Drag to reposition and resize the selection — everything outside it is trimmed.',
+    'Product photos are square. Drag to set the crop. Everything outside it is trimmed.',
   );
   /** The square result, named after the original and ready for upload. */
   readonly cropped = output<File>();

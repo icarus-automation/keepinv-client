@@ -39,13 +39,13 @@ export const PRICING_BASIS_OPTIONS: readonly PricingBasisOption[] = [
     id: 'MARKUP_ON_COST',
     label: 'Markup on cost',
     formula: 'cost + %',
-    hint: 'Add the percentage on top of what you paid. 30% on a ₱100 cost sells at ₱130.00.',
+    hint: 'Added on what you paid. 30% on a ₱100 cost sells at ₱130.00.',
   },
   {
     id: 'MARGIN_ON_PRICE',
     label: 'Margin on price',
     formula: '% of price',
-    hint: 'The percentage is your cut of the price you sell at. 30% on a ₱100 cost sells at ₱142.86.',
+    hint: 'Your cut of the selling price. 30% on a ₱100 cost sells at ₱142.86.',
   },
 ];
 

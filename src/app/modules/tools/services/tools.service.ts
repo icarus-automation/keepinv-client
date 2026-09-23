@@ -9,11 +9,11 @@ const SCAN_RECEIPT: ToolDefinition = {
   label: 'Scan Receipt',
   icon: 'pi pi-receipt',
   path: '/tools/scan-receipt',
-  blurb: 'Photograph a supplier receipt and file every line into stock.',
+  blurb: 'Photograph a supplier receipt and file each line into stock.',
   upgrade: {
     headline: 'Stop retyping supplier receipts',
     pitch:
-      'Photograph the delivery receipt and Scan Receipt reads every line — item, quantity, cost — then files it into stock for you. A forty-line receipt takes about a minute instead of twenty, and the counts come out right the first time.',
+      'Photograph the delivery receipt. Scan Receipt reads item, quantity, and cost, then files it into stock. A forty-line receipt takes about a minute instead of twenty.',
   },
 };
 

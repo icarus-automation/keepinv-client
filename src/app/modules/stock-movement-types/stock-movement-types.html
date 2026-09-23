@@ -1,8 +1,6 @@
 <div class="page">
   <p class="max-w-prose text-sm text-muted">
-    Define the kinds of stock change your shop records — purchases, sales, returns, and any
-    custom movement your workflow needs. Built-in types can be renamed but their effect is fixed
-    and they can't be removed.
+    Names for stock in and stock out. Built-in types keep their effect and cannot be removed.
   </p>
 
   <!-- Quick add: name + effect. Description is set later via edit. -->
@@ -79,7 +77,7 @@
       </ul>
     } @else if (loadError()) {
       <div class="mt-3 rounded-lg border border-line bg-counter px-6 py-10 text-center">
-        <p class="text-sm font-medium text-ink">Couldn't load movement types</p>
+        <p class="text-sm font-medium text-ink">Could not load movement types</p>
         <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
           The server didn't respond. Check your connection and try again.
         </p>
@@ -92,7 +90,7 @@
         </span>
         <p class="mt-3 text-sm font-medium text-ink">No movement types yet</p>
         <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-          Add your first one above so movements can be recorded against it.
+          Add a type above.
         </p>
       </div>
     } @else {
@@ -156,7 +154,7 @@
                     }
                   </div>
                   @if (editingSystem()) {
-                    <span class="text-xs text-muted">Built-in type — its effect is fixed.</span>
+                    <span class="text-xs text-muted">Built-in type. Its effect is fixed.</span>
                   }
                 </div>
 

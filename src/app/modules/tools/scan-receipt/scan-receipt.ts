@@ -185,7 +185,7 @@ export class ScanReceipt {
       return null;
     }
     if (this.includedLines().length === 0) {
-      return 'Nothing to add — every line is skipped.';
+      return 'Nothing to add. Every line is skipped.';
     }
     const unresolved = this.unresolvedCount();
     if (unresolved > 0) {
@@ -202,12 +202,12 @@ export class ScanReceipt {
   protected readonly progressCopy = computed(() => {
     const elapsed = this.scanElapsed();
     if (elapsed < 8) {
-      return 'Reading your receipt…';
+      return 'Reading the receipt…';
     }
     if (elapsed < 30) {
-      return 'Still reading — receipts with many lines take a little longer.';
+      return 'Still reading. Receipts with many lines take longer.';
     }
-    return 'Almost there. Large scans can take up to 90 seconds.';
+    return 'Large scans can take up to 90 seconds.';
   });
 
   constructor() {
@@ -260,7 +260,7 @@ export class ScanReceipt {
     const extensionOk = ACCEPT_EXTENSIONS.test(file.name);
     if (!typeOk && !extensionOk) {
       if (file.type === 'image/webp') {
-        return 'WEBP isn’t supported by the scanner. Use a JPG, PNG, or PDF instead.';
+        return 'WEBP is not supported by the scanner. Use a JPG, PNG, or PDF instead.';
       }
       return 'Use a JPG, PNG, BMP, TIFF, HEIC photo or a PDF.';
     }
@@ -322,7 +322,7 @@ export class ScanReceipt {
   private scanErrorMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 502 || error.status === 504) {
-        return 'The receipt reader timed out. Try again — a sharper, well-lit photo helps.';
+        return 'The receipt reader timed out. Try again with a sharper, well-lit photo.';
       }
       if (error.status === 503) {
         return 'Receipt scanning is not available right now. Try again in a few minutes.';

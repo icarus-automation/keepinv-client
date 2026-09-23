@@ -14,9 +14,7 @@
     <!-- ============================== CAPTURE ============================== -->
     @case ('capture') {
       <p class="max-w-prose text-sm text-muted">
-        Photograph a supplier receipt and it becomes recorded stock: existing products gain
-        quantity, unfamiliar ones are created for you. You review every line before anything
-        is saved.
+        Photograph a delivery receipt, review the lines, then add stock.
       </p>
 
       <div
@@ -69,11 +67,11 @@
         </li>
         <li class="flex items-start gap-3">
           <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-panel text-xs font-semibold tabular-nums text-ink">2</span>
-          <p class="text-sm text-muted"><span class="font-medium text-ink">Review the lines.</span> Fix a name or quantity, link near-matches.</p>
+          <p class="text-sm text-muted"><span class="font-medium text-ink">Review the lines.</span> Fix a name or quantity. Link near-matches.</p>
         </li>
         <li class="flex items-start gap-3">
           <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-panel text-xs font-semibold tabular-nums text-ink">3</span>
-          <p class="text-sm text-muted"><span class="font-medium text-ink">Add to inventory.</span> Stock moves in as purchases, in one tap.</p>
+          <p class="text-sm text-muted"><span class="font-medium text-ink">Add to inventory.</span> Stock is recorded as purchases.</p>
         </li>
       </ol>
     }
@@ -127,7 +125,7 @@
               Review before adding
             </h2>
             <p class="mt-0.5 text-sm text-muted">
-              Nothing is saved yet. Fix anything the scanner misread, then add it all at once.
+              Nothing is saved yet. Fix misreads, then add all lines at once.
             </p>
           </div>
 
@@ -242,7 +240,7 @@
               <span>
                 <span class="text-sm font-medium text-ink">Defaults for new products</span>
                 <span class="mt-0.5 block text-xs text-muted">
-                  Category, location, reorder point, and selling-price markup applied to products created by this import.
+                  Applied to products this import creates.
                 </span>
               </span>
               <i class="pi shrink-0 text-sm text-muted" [class.pi-chevron-down]="!defaultsOpen()" [class.pi-chevron-up]="defaultsOpen()" aria-hidden="true"></i>
@@ -401,8 +399,7 @@
               Already recorded
             </h2>
             <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
-              This exact receipt was committed before, so nothing was added twice. Your stock is
-              unchanged.
+              This receipt was already added. Stock was not changed.
             </p>
           } @else if (commitResult(); as result) {
             <span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-success/10 text-success">
@@ -428,8 +425,8 @@
             </dl>
             @if (result.unitsCreated > 0) {
               <p class="mx-auto mt-3 max-w-sm text-xs text-muted">
-                {{ result.unitsCreated }} untagged unit{{ result.unitsCreated === 1 ? '' : 's' }} created —
-                write RFID tags from each product's Units tab.
+                {{ result.unitsCreated }} untagged unit{{ result.unitsCreated === 1 ? '' : 's' }} created.
+                Write RFID tags from each product's Units tab.
               </p>
             }
           }

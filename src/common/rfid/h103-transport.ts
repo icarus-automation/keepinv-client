@@ -213,7 +213,7 @@ export class H103Transport {
       this.device = undefined;
       throw new ReaderError(
         'incompatible',
-        'That device answered, but it is not a CHAFON UHF reader — the expected Bluetooth service is missing.',
+        'That device answered, but it is not a CHAFON UHF reader. The expected Bluetooth service is missing.',
       );
     }
 
@@ -298,7 +298,7 @@ export class H103Transport {
     if (!H103Transport.supported) {
       throw new ReaderError(
         'unsupported',
-        'This browser cannot talk to Bluetooth devices. Use Chrome or Edge on a secure (https) connection.',
+        'This browser cannot talk to Bluetooth devices. Use Chrome or Edge on https.',
       );
     }
   }

@@ -1,7 +1,6 @@
 <div class="page">
   <p class="max-w-prose text-sm text-muted">
-    Define how products are grouped. Categories keep inventory organized so the counter finds
-    items fast.
+    Group products so the counter can find them.
   </p>
 
   <!-- Quick add: name only, stays focused for rapid entry. Description is set later via edit. -->
@@ -37,7 +36,7 @@
 
   <section class="mt-9" aria-labelledby="categories-heading">
     <div class="flex items-baseline justify-between gap-3">
-      <h2 id="categories-heading" class="text-sm font-semibold tracking-tight">Your categories</h2>
+      <h2 id="categories-heading" class="text-sm font-semibold tracking-tight">Categories</h2>
       @if (!loading() && !loadError() && count() > 0) {
         <span class="text-xs tabular-nums text-muted">
           {{ count() }} {{ count() === 1 ? 'category' : 'categories' }}
@@ -56,7 +55,7 @@
       </ul>
     } @else if (loadError()) {
       <div class="mt-3 rounded-lg border border-line bg-counter px-6 py-10 text-center">
-        <p class="text-sm font-medium text-ink">Couldn't load categories</p>
+        <p class="text-sm font-medium text-ink">Could not load categories</p>
         <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
           The server didn't respond. Check your connection and try again.
         </p>
@@ -75,7 +74,7 @@
         </span>
         <p class="mt-3 text-sm font-medium text-ink">No categories yet</p>
         <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-          Add your first one above to start grouping your products.
+          Add a category above.
         </p>
       </div>
     } @else {

@@ -58,7 +58,7 @@ import { ImageCropDialog } from './image-crop-dialog';
       <div class="min-w-0 flex-1">
         <p class="text-xs font-medium uppercase tracking-wide text-muted">Photo</p>
         <p class="mt-0.5 text-sm text-muted">
-          {{ hasImage() ? 'Shown on the detail pane and barcode sheet.' : 'No photo uploaded yet.' }}
+          {{ hasImage() ? 'Shown on the detail pane and barcode sheet.' : 'No photo yet.' }}
         </p>
 
         <div class="mt-2 flex flex-wrap items-center gap-1.5">

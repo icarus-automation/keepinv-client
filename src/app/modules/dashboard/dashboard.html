@@ -2,8 +2,7 @@
   <!-- Header -->
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <p class="max-w-prose text-sm text-muted">
-      Where your inventory stands right now: stock on hand and its value, and what needs chasing —
-      assets missing, misplaced, without an RFID tag, or written off.
+      Stock on hand, its value, and assets that need a check.
     </p>
     <div class="flex shrink-0 items-center gap-3">
       @if (report(); as r) {
@@ -36,7 +35,7 @@
     </div>
   } @else if (loadError(); as error) {
     <div class="mt-6 rounded-lg border border-line bg-counter px-6 py-12 text-center">
-      <p class="text-sm font-medium text-ink">Couldn't load the dashboard</p>
+      <p class="text-sm font-medium text-ink">Could not load the dashboard</p>
       <p class="mx-auto mt-1 max-w-sm text-sm text-muted">{{ error }}</p>
       <p-button type="button" label="Retry" [text]="true" (onClick)="refresh()" styleClass="mt-3 font-medium" />
     </div>
@@ -47,8 +46,7 @@
       </span>
       <p class="mt-3 text-sm font-medium text-ink">No inventory yet</p>
       <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-        Add your first products and the dashboard will show stock, value, and anything that needs
-        attention.
+        Add products to see stock, value, and anything that needs a check.
       </p>
       <p-button
         type="button"
@@ -176,7 +174,7 @@
     @if (lowStockProducts().length > 0) {
       <section aria-label="Low stock to reorder" class="mt-6 overflow-hidden rounded-lg border border-line bg-counter">
         <div class="flex items-center justify-between border-b border-line px-5 py-3">
-          <h2 class="text-sm font-medium text-ink">Low stock — reorder</h2>
+          <h2 class="text-sm font-medium text-ink">Low stock to reorder</h2>
           <a routerLink="/products" class="text-xs font-medium text-muted hover:text-ink">All products →</a>
         </div>
         <ul>
@@ -235,7 +233,7 @@
       @if (allClear()) {
         <p class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-success">
           <i class="pi pi-check-circle text-[0.7rem]" aria-hidden="true"></i>
-          Every tracked asset is accounted for.
+          All tracked assets are accounted for.
         </p>
       }
     </section>

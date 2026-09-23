@@ -35,7 +35,7 @@ export type PowerPresetId = 'near' | 'shelf' | 'room';
 
 export const POWER_PRESETS: readonly PowerPreset[] = [
   { id: 'near', label: 'At the antenna', hint: 'Only a tag you are holding', dbm: 10 },
-  { id: 'shelf', label: 'Arm’s length', hint: 'One shelf or bin at a time', dbm: 22 },
+  { id: 'shelf', label: "Arm's length", hint: 'One shelf or bin at a time', dbm: 22 },
   { id: 'room', label: 'Full range', hint: 'Sweep a whole aisle', dbm: 30 },
 ];
 

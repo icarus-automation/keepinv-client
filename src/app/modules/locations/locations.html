@@ -1,7 +1,6 @@
 <div class="page">
   <p class="max-w-prose text-sm text-muted">
-    Define where stock physically lives, like Main Warehouse or Front Shelf. Give each one a code to
-    print on its label, then scan that code later to audit what should be where.
+    Where stock lives. Add a code if you print location labels.
   </p>
 
   <!-- Quick add: name plus an optional code so the label is printable the moment a location exists. -->
@@ -52,7 +51,7 @@
 
   <section class="mt-9" aria-labelledby="locations-heading">
     <div class="flex items-baseline justify-between gap-3">
-      <h2 id="locations-heading" class="text-sm font-semibold tracking-tight">Your locations</h2>
+      <h2 id="locations-heading" class="text-sm font-semibold tracking-tight">Locations</h2>
       @if (!loading() && !loadError() && count() > 0) {
         <span class="text-xs tabular-nums text-muted">
           {{ count() }} {{ count() === 1 ? 'location' : 'locations' }}
@@ -71,7 +70,7 @@
       </ul>
     } @else if (loadError()) {
       <div class="mt-3 rounded-lg border border-line bg-counter px-6 py-10 text-center">
-        <p class="text-sm font-medium text-ink">Couldn't load locations</p>
+        <p class="text-sm font-medium text-ink">Could not load locations</p>
         <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
           The server didn't respond. Check your connection and try again.
         </p>
@@ -90,7 +89,7 @@
         </span>
         <p class="mt-3 text-sm font-medium text-ink">No locations yet</p>
         <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-          Add your first one above. Try Main Warehouse, Front Shelf, or Bin A-12.
+          Add a location above.
         </p>
       </div>
     } @else {

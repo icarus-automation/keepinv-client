@@ -23,8 +23,7 @@ const SUBSCRIBE_URL = 'https://www.facebook.com/profile.php?id=61591016892426';
         </span>
         <h1 class="mt-5 text-xl font-semibold tracking-tight">Your trial has ended</h1>
         <p class="mt-2 text-sm text-muted">
-          Thanks for trying keep inv. To keep using it, message us to activate your subscription —
-          we'll get you back up and running.
+          Message us to activate your subscription.
         </p>
         <a
           [href]="subscribeUrl"

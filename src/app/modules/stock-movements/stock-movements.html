@@ -2,8 +2,7 @@
   <!-- Header -->
   <div class="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
     <p class="max-w-prose text-sm text-muted">
-      Every change to stock, in order. Record a purchase, sale, return, or adjustment, and review the
-      full history. Entries can't be edited; correct a mistake by recording the opposite movement.
+      Purchases, sales, returns, and adjustments. To fix a mistake, record the opposite movement.
     </p>
     <p-button
       type="button"
@@ -25,7 +24,7 @@
     </div>
   } @else if (loadError() && movements().length === 0) {
     <div class="mt-8 rounded-lg border border-line bg-counter px-6 py-12 text-center">
-      <p class="text-sm font-medium text-ink">Couldn't load movements</p>
+      <p class="text-sm font-medium text-ink">Could not load movements</p>
       <p class="mx-auto mt-1 max-w-sm text-sm text-muted">{{ loadError() }}</p>
       <p-button type="button" label="Retry" [text]="true" (onClick)="load()" styleClass="mt-3 font-medium" />
     </div>
@@ -154,7 +153,7 @@
                 @if (hasFilters()) {
                   No movements match these filters.
                 } @else {
-                  No movements recorded yet. Record one using the form.
+                  No movements recorded yet.
                 }
               </td>
             </tr>

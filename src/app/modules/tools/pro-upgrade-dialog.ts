@@ -6,9 +6,9 @@ const FACEBOOK_PAGE_URL = 'https://www.facebook.com/profile.php?id=6158210393111
 
 /** Everything a BASIC tenant gains, in the order a shop owner cares about it. */
 const PRO_INCLUDES: readonly string[] = [
-  'Point of Sale, with sales history and reports',
+  'Point of Sale, sales history, and reports',
   'Scan Receipt for supplier deliveries',
-  'Barcode Sheet you can print and tape by the till',
+  'Barcode Sheet to print and tape by the till',
 ];
 
 /**
@@ -41,7 +41,7 @@ const PRO_INCLUDES: readonly string[] = [
             viewBox="0 0 96 96"
             class="upgrade-float h-24 w-24"
             role="img"
-            aria-label="A smiling receipt with sparkles"
+            aria-label="Receipt"
           >
             <!-- sparkles -->
             <path d="M16 22l2.2 5 5 2.2-5 2.2-2.2 5-2.2-5-5-2.2 5-2.2z" fill="var(--color-signal)" />
@@ -73,7 +73,7 @@ const PRO_INCLUDES: readonly string[] = [
         <p class="mt-2 max-w-sm text-sm leading-relaxed text-muted">{{ pitch() }}</p>
 
         <div class="mt-5 w-full rounded-md border border-line bg-panel px-4 py-3 text-left">
-          <p class="text-xs font-medium text-ink">The PRO plan also carries</p>
+          <p class="text-xs font-medium text-ink">Also on PRO</p>
           <ul class="mt-2 flex flex-col gap-1.5">
             @for (item of proIncludes; track item) {
               <li class="flex items-start gap-2 text-sm text-muted">
@@ -93,13 +93,13 @@ const PRO_INCLUDES: readonly string[] = [
           <i class="pi pi-facebook text-base" aria-hidden="true"></i>
           Message us to upgrade
         </a>
-        <p class="mt-2 text-xs text-muted">We answer within the day. Nothing to pay to ask.</p>
+        <p class="mt-2 text-xs text-muted">We reply the same day. No payment to send a message.</p>
         <button
           type="button"
           (click)="visible.set(false)"
           class="mt-3 rounded-md px-3 py-1.5 text-sm font-medium text-muted outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter motion-reduce:transition-none"
         >
-          Maybe later
+          Not now
         </button>
       </div>
     </p-dialog>
@@ -123,7 +123,7 @@ export class ProUpgradeDialog {
   readonly featureName = input('Scan Receipt');
   readonly headline = input('Stop retyping supplier receipts');
   readonly pitch = input(
-    'Photograph the delivery receipt and Scan Receipt reads every line — item, quantity, cost — then files it into stock for you.',
+    'Photograph the delivery receipt. Scan Receipt reads item, quantity, and cost, then files it into stock.',
   );
   protected readonly facebookUrl = FACEBOOK_PAGE_URL;
   protected readonly proIncludes = PRO_INCLUDES;

@@ -155,7 +155,7 @@ class KeepInvNiimbotBluetoothClient extends NiimbotAbstractClient {
     if (!channel) {
       server.disconnect();
       throw new Error(
-        "Couldn't find a usable Bluetooth characteristic on the printer. Make sure no " +
+        "Could not find a usable Bluetooth characteristic on the printer. Make sure no " +
           'other app or your phone is connected to it, then power-cycle the printer and try again.',
       );
     }

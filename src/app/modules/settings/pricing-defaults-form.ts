@@ -175,7 +175,7 @@ export class PricingDefaultsForm {
       return null;
     }
     return this.basis() === 'MARGIN_ON_PRICE'
-      ? `A margin is a share of the selling price, so it has to stay under 100%. Lower this to ${formatPercent(max)}% or less.`
+      ? `Margin must stay under 100%. Use ${formatPercent(max)}% or less.`
       : `Enter a percentage between 0 and ${formatPercent(max)}.`;
   });
 
@@ -183,7 +183,7 @@ export class PricingDefaultsForm {
   protected readonly preview = computed(() => {
     const percent = this.value().defaultPricingPercent;
     if (percent === null) {
-      return 'Auto-pricing is off. Enter a percentage to price new products from their cost.';
+      return 'Off. Enter a percentage to price new products from cost.';
     }
     const sellingPrice = sellingPriceFrom(EXAMPLE_COST, {
       pricingBasis: this.basis(),
@@ -198,7 +198,7 @@ export class PricingDefaultsForm {
   protected readonly savedRuleSummary = computed(() => {
     const rule = pricingRuleLabel(this.pricingDefaults.defaults());
     return rule === null
-      ? 'No pricing default is set, so new products start at a blank selling price.'
+      ? 'No default. New products start with a blank selling price.'
       : `New products are priced at ${rule}.`;
   });
 

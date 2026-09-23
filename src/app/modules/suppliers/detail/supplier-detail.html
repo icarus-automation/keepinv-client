@@ -213,8 +213,7 @@
           </dl>
         } @else {
           <p class="text-sm text-muted">
-            No contact details saved. Use <span class="font-medium text-ink">Edit</span> to add an
-            email, phone, or address.
+            No contact details saved. Use <span class="font-medium text-ink">Edit</span> to add email, phone, or address.
           </p>
         }
       </section>
@@ -232,7 +231,7 @@
           }
         </div>
         <p class="mt-1 max-w-prose text-sm text-muted">
-          Saved links to message or order from this supplier. Open one to reach them and buy back.
+          Links to message or order from this supplier.
         </p>
 
         <!-- Add channel -->
@@ -310,7 +309,7 @@
           </ul>
         } @else if (linksError()) {
           <div class="mt-3 rounded-lg border border-line px-6 py-8 text-center">
-            <p class="text-sm font-medium text-ink">Couldn't load channels</p>
+            <p class="text-sm font-medium text-ink">Could not load channels</p>
             <p-button
               type="button"
               label="Retry"
@@ -326,7 +325,7 @@
             </span>
             <p class="mt-2 text-sm font-medium text-ink">No channels yet</p>
             <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-              Add a Messenger, WhatsApp, or email link above so reordering is one tap away.
+              Add a Messenger, WhatsApp, or email link above.
             </p>
           </div>
         } @else {

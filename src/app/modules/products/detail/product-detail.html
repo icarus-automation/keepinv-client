@@ -72,8 +72,7 @@
         <div class="rounded-lg border border-line bg-panel px-4 py-4">
           <p class="text-sm font-medium text-ink">Archive "{{ product().name }}"?</p>
           <p class="mt-1 text-sm text-muted">
-            It will be hidden from the catalog and can't be sold. Its history and stock records stay
-            intact.
+            It is hidden from the catalog and cannot be sold. History and stock records stay.
           </p>
           @if (archiveError()) {
             <p role="alert" class="mt-2 text-xs text-danger">{{ archiveError() }}</p>
@@ -188,7 +187,7 @@
                     <i class="pi pi-external-link text-xs" aria-hidden="true"></i>
                   </a>
                   <p class="mt-2 text-xs text-muted">
-                    Stock is {{ stock() === 'out' ? 'out' : 'low' }} — reorder from {{ r.label }}.
+                    Stock is {{ stock() === 'out' ? 'out' : 'low' }}. Reorder from {{ r.label }}.
                   </p>
                 </div>
               }

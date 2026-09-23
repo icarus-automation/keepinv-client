@@ -1,12 +1,12 @@
 <div class="page">
   <p class="max-w-prose text-sm text-muted">
-    Manage how your shop is identified across the app, and how it reads on this device.
+    Shop name, logo, pricing default, and this screen's text size.
   </p>
 
   <section class="mt-8" aria-labelledby="org-heading">
     <h2 id="org-heading" class="text-sm font-semibold tracking-tight text-ink">Organization</h2>
     <p class="mt-1 max-w-prose text-sm text-muted">
-      Your name and logo appear in the sidebar and on the sign-in screen for everyone on your team.
+      Name and logo show in the sidebar.
     </p>
 
     @if (organization(); as org) {
@@ -112,9 +112,7 @@
   <section class="mt-8" aria-labelledby="pricing-heading">
     <h2 id="pricing-heading" class="text-sm font-semibold tracking-tight text-ink">Pricing</h2>
     <p class="mt-1 max-w-prose text-sm text-muted">
-      Set the percentage you price at and new products fill in their own selling price from the
-      cost you enter. It is a starting point, not a lock: the selling price stays editable on every
-      product, so you can charge more on the ones that carry it.
+      New products fill selling price from cost. You can still type a different price.
     </p>
 
     <div class="mt-3 rounded-lg border border-line bg-counter p-4 sm:p-5">
@@ -125,16 +123,14 @@
   <section class="mt-8" aria-labelledby="display-heading">
     <h2 id="display-heading" class="text-sm font-semibold tracking-tight text-ink">Display</h2>
     <p class="mt-1 max-w-prose text-sm text-muted">
-      Saved in this browser, so it sticks the next time you sign in here — and doesn't change
-      anything for other staff or devices.
+      Saved in this browser only. Other staff and devices are unchanged.
     </p>
 
     <div class="mt-3 rounded-lg border border-line bg-counter p-4 sm:p-5">
       <fieldset>
         <legend class="text-sm font-medium text-ink">Text size</legend>
         <p class="mt-1 max-w-prose text-sm text-muted">
-          Make everything on screen bigger or smaller. Pick whatever is comfortable to read — it
-          applies right away.
+          Bigger or smaller type on this screen. Applies immediately.
         </p>
 
         <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">

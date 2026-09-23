@@ -96,8 +96,8 @@ const ORG_LOGO_MAX_BYTES = 5 * 1024 * 1024;
 
     <app-image-crop-dialog
       [file]="pendingFile()"
-      header="Crop your logo"
-      description="Your logo is square. Drag to reposition and resize the selection — everything outside it is trimmed."
+      header="Crop logo"
+      description="The logo is square. Drag to set the crop. Everything outside it is trimmed."
       (cropped)="onCropped($event)"
       (cancelled)="pendingFile.set(null)"
     />

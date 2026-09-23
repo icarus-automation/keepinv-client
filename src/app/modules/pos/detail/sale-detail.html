@@ -26,7 +26,7 @@
     </div>
   } @else if (loadError(); as error) {
     <div class="px-2 py-10 text-center">
-      <p class="text-sm font-medium text-ink">Couldn't load this sale</p>
+      <p class="text-sm font-medium text-ink">Could not load this sale</p>
       <p class="mx-auto mt-1 max-w-sm text-sm text-muted">{{ error }}</p>
       <p-button type="button" label="Retry" [text]="true" (onClick)="retry()" styleClass="mt-3 font-medium" />
     </div>
@@ -54,7 +54,7 @@
           <div class="rounded-lg border border-line bg-panel p-4">
             <p class="text-sm font-medium text-ink">Void this sale?</p>
             <p class="mt-1 text-xs text-muted">
-              This returns every item to stock and marks the sale voided. It can't be undone.
+              This returns every item to stock and marks the sale voided. It cannot be undone.
             </p>
             <label for="void-reason" class="mt-3 block text-xs font-medium text-muted">Reason (optional)</label>
             <textarea

@@ -18,8 +18,8 @@
           <h2 class="text-lg font-semibold tracking-tight text-ink">Register units</h2>
           <p class="mt-1 text-sm text-muted">
             Bring units of
-            <span class="font-medium text-ink">{{ product().name }}</span> into stock by sweeping
-            RFID tags. First, where do they land?
+            <span class="font-medium text-ink">{{ product().name }}</span> into stock. Choose a
+            location.
           </p>
 
           <div class="mt-6 flex flex-col gap-5">
@@ -408,8 +408,7 @@
             <div class="rounded-lg border border-dashed border-line px-6 py-12 text-center">
               <p class="text-sm font-medium text-ink">Nothing staged yet</p>
               <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
-                Sweep or scan an RFID tag. Each one stages a unit here; register them all when
-                you're done.
+                Sweep or scan an RFID tag. Register them when you are done.
               </p>
             </div>
           } @else {
@@ -567,7 +566,7 @@
       <div class="w-64">
         <p class="text-sm font-medium text-ink">Discard staged units?</p>
         <p class="mt-1 text-xs text-muted">
-          <span class="tabular-nums">{{ count() }}</span> tags haven't been registered yet. They'll be lost.
+          <span class="tabular-nums">{{ count() }}</span> tags are not registered yet. They will be lost.
         </p>
         <div class="mt-3 flex justify-end gap-2">
           <p-button type="button" label="Keep sweeping" [text]="true" (onClick)="discardPop.hide()" styleClass="text-muted" />

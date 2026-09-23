@@ -94,7 +94,7 @@ export class ReviewLineRow {
       }
       case 'new':
         return line.trackSerials
-          ? 'A new serialized product will be created — units get RFID tags later'
+          ? 'A new serialized product will be created. Units get RFID tags later'
           : 'A new product will be created, then stocked';
       default:
         return this.line().scan.match.reason;
