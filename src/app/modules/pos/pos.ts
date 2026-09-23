@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  ElementRef,
   computed,
   effect,
   inject,
@@ -11,9 +10,17 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, finalize } from 'rxjs';
+import { finalize } from 'rxjs';
+import {
+  AutoComplete,
+  AutoCompleteCompleteEvent,
+  AutoCompleteModule,
+  AutoCompleteSelectEvent,
+} from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { Listbox, ListboxClickEvent, ListboxModule } from 'primeng/listbox';
 import { TextareaModule } from 'primeng/textarea';
 
 import { httpErrorMessage } from '../../../common/http/http-error-message';
@@ -68,7 +75,17 @@ const REFOCUS_DELAY_MS = 0;
  */
 @Component({
   selector: 'app-pos',
-  imports: [ReactiveFormsModule, ButtonModule, InputTextModule, TextareaModule, MoneyPipe, Receipt],
+  imports: [
+    ReactiveFormsModule,
+    AutoCompleteModule,
+    ButtonModule,
+    DialogModule,
+    InputTextModule,
+    ListboxModule,
+    TextareaModule,
+    MoneyPipe,
+    Receipt,
+  ],
   templateUrl: './pos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
@@ -77,9 +94,8 @@ export class Pos {
   private readonly service = inject(PosService);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly scanInput = viewChild<ElementRef<HTMLInputElement>>('scanInput');
-  private readonly unitPickerPanel = viewChild<ElementRef<HTMLElement>>('unitPickerPanel');
-  private readonly unitPickerList = viewChild<ElementRef<HTMLElement>>('unitPickerList');
+  private readonly searchField = viewChild(AutoComplete);
+  private readonly unitList = viewChild(Listbox);
 
   protected readonly phase = signal<'selling' | 'receipt'>('selling');
 
@@ -90,9 +106,7 @@ export class Pos {
   // --- Scan / search ---
   protected readonly searchControl = new FormControl('', { nonNullable: true });
   protected readonly results = signal<PosSearchItem[]>([]);
-  protected readonly resultsOpen = signal(false);
   protected readonly searching = signal(false);
-  protected readonly highlighted = signal(0);
   /** A transient note under the field: a not-found miss or a duplicate-unit rejection. */
   protected readonly searchNotice = signal<string | null>(null);
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -103,7 +117,6 @@ export class Pos {
   protected readonly unitPickerUnits = signal<PosSearchItem[]>([]);
   protected readonly unitPickerLoading = signal(false);
   protected readonly unitPickerError = signal<string | null>(null);
-  protected readonly unitPickerHighlighted = signal(0);
 
   // --- Tender ---
   protected readonly methods: readonly PaymentMethodMeta[] = PAYMENT_METHODS;
@@ -170,29 +183,28 @@ export class Pos {
   protected readonly changeDueDisplay = computed(() => formatPeso(this.changeDueCents() / 100));
 
   constructor() {
-    // Settled, distinct typing drives the live pick list. The scanner's Enter path
-    // resolves separately and immediately, so it never waits on this debounce.
-    this.searchControl.valueChanges
-      .pipe(debounceTime(250), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe((value) => this.runLiveSearch(value.trim()));
-
     // Keep the scan field focused whenever we're selling, so an RFID/barcode sweep
-    // always lands in it. The receipt phase releases focus to its own actions.
+    // always lands in it. The receipt phase and the unit dialog release that focus.
     effect(() => {
-      const el = this.scanInput();
-      if (el && this.phase() === 'selling' && !this.unitPickerProduct()) {
-        el.nativeElement.focus();
+      const field = this.searchField();
+      if (field && this.phase() === 'selling' && !this.unitPickerProduct()) {
+        field.inputEL?.nativeElement.focus();
       }
     });
 
-    // Move focus into the unit picker when it opens so arrow/Enter/Escape work: the
-    // list takes focus once loaded, the panel holds it while units are still loading.
     effect(() => {
-      if (!this.unitPickerProduct()) {
+      const product = this.unitPickerProduct();
+      const loading = this.unitPickerLoading();
+      const error = this.unitPickerError();
+      const list = this.unitList();
+      if (!product || loading || error || !list) {
         return;
       }
-      const target = this.unitPickerList() ?? this.unitPickerPanel();
-      target?.nativeElement.focus();
+      queueMicrotask(() => {
+        const host = list.el.nativeElement as HTMLElement;
+        const focusable = host.querySelector<HTMLElement>('[tabindex]') ?? host;
+        focusable.focus();
+      });
     });
 
     this.destroyRef.onDestroy(() => {
@@ -204,43 +216,47 @@ export class Pos {
 
   // --- Scan / search ---
 
-  private runLiveSearch(term: string): void {
+  /** Debounced catalog lookup. AutoComplete owns the overlay and the arrow keys. */
+  protected searchItems(event: AutoCompleteCompleteEvent): void {
+    const term = event.query.trim();
     if (!term) {
       this.results.set([]);
-      this.resultsOpen.set(false);
-      this.searching.set(false);
       return;
     }
-    this.searching.set(true);
     this.service
       .searchItems(term)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (items) => {
-          this.results.set(items);
-          this.highlighted.set(this.firstSelectableIndex(items));
-          this.resultsOpen.set(items.length > 0);
-          this.searching.set(false);
-        },
-        error: () => this.searching.set(false),
+        next: (items) => this.results.set(items),
+        error: () => this.results.update((items) => items.slice()),
       });
   }
 
-  /** Enter from the scan field: add the highlighted pick, else resolve the raw token. */
-  protected onScanEnter(event: Event): void {
-    event.preventDefault();
-    const term = this.searchControl.value.trim();
+  protected onSuggestionSelect(event: AutoCompleteSelectEvent): void {
+    const item = event.value as PosSearchItem | null;
+    if (!item || typeof item !== 'object' || !('productId' in item)) {
+      return;
+    }
+    this.addItem(item);
+  }
+
+  /**
+   * Enter while the suggestion list is closed resolves the raw scan immediately.
+   * An open list lets AutoComplete add the focused row.
+   */
+  protected onSearchKeydown(event: KeyboardEvent): void {
+    if (event.code !== 'Enter' && event.code !== 'NumpadEnter') {
+      return;
+    }
+    const field = this.searchField();
+    if (field?.overlayVisible && field.focusedOptionIndex() !== -1) {
+      return;
+    }
+    const term = field?.inputEL?.nativeElement.value.trim() ?? '';
     if (!term) {
       return;
     }
-    const results = this.results();
-    if (this.resultsOpen() && results.length) {
-      const pick = results[this.highlighted()];
-      if (pick && this.canSelect(pick)) {
-        this.addItem(pick);
-        return;
-      }
-    }
+    event.preventDefault();
     this.resolveAndAdd(term);
   }
 
@@ -278,12 +294,11 @@ export class Pos {
           if (items.length === 0) {
             this.flagNotice(`No item found for "${term}".`);
             this.results.set([]);
-            this.resultsOpen.set(false);
+            this.searchField()?.hide();
             return;
           }
           this.results.set(items);
-          this.highlighted.set(this.firstSelectableIndex(items));
-          this.resultsOpen.set(true);
+          this.searchField()?.show();
         },
         error: (error: unknown) => this.flagNotice(httpErrorMessage(error)),
       });
@@ -298,11 +313,6 @@ export class Pos {
     );
   }
 
-  private firstSelectableIndex(items: PosSearchItem[]): number {
-    const index = items.findIndex((item) => this.canSelect(item));
-    return index === -1 ? 0 : index;
-  }
-
   /** A serialized product with stock isn't sold directly — selecting it prompts for a unit. */
   protected needsUnitPick(item: PosSearchItem): boolean {
     return item.kind === 'PRODUCT' && item.isSerialized && item.quantityOnHand > 0;
@@ -313,37 +323,23 @@ export class Pos {
     return item.isSellable || this.needsUnitPick(item);
   }
 
-  protected moveHighlight(delta: number, event: Event): void {
-    if (!this.resultsOpen() || this.results().length === 0) {
-      return;
-    }
-    event.preventDefault();
-    const count = this.results().length;
-    this.highlighted.update((current) => (current + delta + count) % count);
-  }
+  /**
+   * Unavailable rows stay visible but cannot be chosen. An arrow function, because
+   * PrimeNG calls `optionDisabled` as a bare function and a method would lose `this`.
+   */
+  protected readonly searchOptionDisabled = (item: PosSearchItem): string =>
+    this.canSelect(item) ? '' : 'disabled';
 
-  protected highlight(index: number): void {
-    this.highlighted.set(index);
-  }
-
-  protected closeResults(): void {
-    this.resultsOpen.set(false);
-  }
-
-  protected onScanBlur(): void {
+  protected onSearchBlur(): void {
     // Reclaim focus only if it fell to nothing; never steal it from a real control
     // (a result button, a tender field). Mirrors the commissioning sweep.
     setTimeout(() => {
-      const el = this.scanInput()?.nativeElement;
+      const el = this.searchField()?.inputEL?.nativeElement;
       const active = document.activeElement;
-      if (el && this.phase() === 'selling' && (active === document.body || active === null)) {
+      if (el && this.phase() === 'selling' && !this.unitPickerProduct() && (active === document.body || active === null)) {
         el.focus();
       }
     }, REFOCUS_DELAY_MS);
-  }
-
-  protected optionId(index: number): string {
-    return `pos-result-${index}`;
   }
 
   // --- Cart ---
@@ -414,7 +410,7 @@ export class Pos {
   private afterAdd(): void {
     this.searchControl.setValue('', { emitEvent: false });
     this.results.set([]);
-    this.resultsOpen.set(false);
+    this.searchField()?.hide();
     this.checkoutError.set(null);
     this.refocus();
   }
@@ -431,10 +427,9 @@ export class Pos {
     this.unitPickerProduct.set(product);
     this.unitPickerUnits.set([]);
     this.unitPickerError.set(null);
-    this.unitPickerHighlighted.set(0);
     this.unitPickerLoading.set(true);
     this.results.set([]);
-    this.resultsOpen.set(false);
+    this.searchField()?.hide();
     this.searchControl.setValue('', { emitEvent: false });
 
     this.service
@@ -468,27 +463,17 @@ export class Pos {
     this.addItem(unit);
   }
 
-  /** Pick the currently highlighted unit (Enter from the picker). */
-  protected pickHighlightedUnit(event: Event): void {
-    event.preventDefault();
-    const unit = this.unitPickerUnits()[this.unitPickerHighlighted()];
-    if (unit) {
+  protected onUnitClick(event: ListboxClickEvent): void {
+    const unit = event.option as PosSearchItem | undefined;
+    if (unit?.productUnitId) {
       this.pickUnit(unit);
     }
   }
 
-  /** Roving highlight inside the unit picker (Arrow keys). */
-  protected moveUnitHighlight(delta: number, event: Event): void {
-    const count = this.unitPickerUnits().length;
-    if (count === 0) {
-      return;
+  protected onUnitDialogVisible(open: boolean): void {
+    if (!open && this.unitPickerProduct()) {
+      this.closeUnitPicker();
     }
-    event.preventDefault();
-    this.unitPickerHighlighted.update((current) => (current + delta + count) % count);
-  }
-
-  protected setUnitHighlight(index: number): void {
-    this.unitPickerHighlighted.set(index);
   }
 
   /** Dismiss the unit picker and return focus to the scanner. */
@@ -496,12 +481,7 @@ export class Pos {
     this.unitPickerProduct.set(null);
     this.unitPickerUnits.set([]);
     this.unitPickerError.set(null);
-    this.unitPickerHighlighted.set(0);
     this.refocus();
-  }
-
-  protected unitOptionId(index: number): string {
-    return `pos-unit-${index}`;
   }
 
   protected increment(key: string): void {
@@ -634,7 +614,6 @@ export class Pos {
     this.cart.set([]);
     this.searchControl.setValue('', { emitEvent: false });
     this.results.set([]);
-    this.resultsOpen.set(false);
     this.method.set('CASH');
     this.tenderControl.setValue(null, { emitEvent: false });
     this.noteControl.setValue('', { emitEvent: false });
@@ -647,7 +626,7 @@ export class Pos {
 
   private refocus(): void {
     if (this.phase() === 'selling') {
-      this.scanInput()?.nativeElement.focus();
+      this.searchField()?.inputEL?.nativeElement.focus();
     }
   }
 

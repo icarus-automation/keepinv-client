@@ -9,6 +9,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { addDays, endOfDay, startOfDay, startOfMonth } from 'date-fns';
 import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { ChartModule } from 'primeng/chart';
@@ -249,9 +250,9 @@ export class Dashboard {
 
     const canPos = this.canUsePos();
     const now = new Date();
-    const weekStart = this.startOfDay(this.addDays(now, -6));
-    const to = this.endOfDay(now);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const weekStart = startOfDay(addDays(now, -6));
+    const to = endOfDay(now);
+    const monthStart = startOfMonth(now);
 
     forkJoin({
       report: this.dashboardService.getInventoryDashboard(),
@@ -304,23 +305,5 @@ export class Dashboard {
 
   protected peso(cents: number): string {
     return formatPeso(cents / 100);
-  }
-
-  private startOfDay(date: Date): Date {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  }
-
-  private endOfDay(date: Date): Date {
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-    return end;
-  }
-
-  private addDays(date: Date, days: number): Date {
-    const shifted = new Date(date);
-    shifted.setDate(shifted.getDate() + days);
-    return shifted;
   }
 }

@@ -10,6 +10,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { addDays, endOfDay, format, isSameDay, startOfDay } from 'date-fns';
 import { filter } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -31,10 +32,6 @@ interface PeriodChip {
   readonly value: ReportPeriod;
   readonly label: string;
 }
-
-const MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
 
 /**
  * The sales report: a calm, glanceable read of how the shop is doing over a chosen
@@ -114,7 +111,7 @@ export class SalesReport {
       case '30d':
         return 'Last 30 days';
       default:
-        return `${this.shortDate(this.loadedFrom())} – ${this.shortDate(this.loadedTo())}`;
+        return `${format(this.loadedFrom(), 'MMM d')} – ${format(this.loadedTo(), 'MMM d')}`;
     }
   });
 
@@ -153,7 +150,7 @@ export class SalesReport {
     }
 
     const token = ++this.loadToken;
-    const granularity: TrendGranularity = this.sameDay(range.from, range.to) ? 'hour' : 'day';
+    const granularity: TrendGranularity = isSameDay(range.from, range.to) ? 'hour' : 'day';
     this.loading.set(true);
     this.loadError.set(null);
 
@@ -217,48 +214,18 @@ export class SalesReport {
     const now = new Date();
     switch (this.period()) {
       case 'today':
-        return { from: this.startOfDay(now), to: this.endOfDay(now) };
+        return { from: startOfDay(now), to: endOfDay(now) };
       case '7d':
-        return { from: this.startOfDay(this.addDays(now, -6)), to: this.endOfDay(now) };
+        return { from: startOfDay(addDays(now, -6)), to: endOfDay(now) };
       case '30d':
-        return { from: this.startOfDay(this.addDays(now, -29)), to: this.endOfDay(now) };
+        return { from: startOfDay(addDays(now, -29)), to: endOfDay(now) };
       default: {
         const range = this.customRange.value;
         if (!range || !range[0] || !range[1]) {
           return null;
         }
-        return { from: this.startOfDay(range[0]), to: this.endOfDay(range[1]) };
+        return { from: startOfDay(range[0]), to: endOfDay(range[1]) };
       }
     }
-  }
-
-  private sameDay(a: Date, b: Date): boolean {
-    return (
-      a.getFullYear() === b.getFullYear() &&
-      a.getMonth() === b.getMonth() &&
-      a.getDate() === b.getDate()
-    );
-  }
-
-  private startOfDay(date: Date): Date {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  }
-
-  private endOfDay(date: Date): Date {
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-    return end;
-  }
-
-  private addDays(date: Date, days: number): Date {
-    const shifted = new Date(date);
-    shifted.setDate(shifted.getDate() + days);
-    return shifted;
-  }
-
-  private shortDate(date: Date): string {
-    return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
   }
 }

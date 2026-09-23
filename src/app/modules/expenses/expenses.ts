@@ -9,6 +9,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { addDays, endOfDay, startOfDay, startOfMonth } from 'date-fns';
 import { filter, finalize, forkJoin } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -312,38 +313,20 @@ export class Expenses {
     const now = new Date();
     switch (this.period()) {
       case 'today':
-        return { from: this.startOfDay(now), to: this.endOfDay(now) };
+        return { from: startOfDay(now), to: endOfDay(now) };
       case '7d':
-        return { from: this.startOfDay(this.addDays(now, -6)), to: this.endOfDay(now) };
+        return { from: startOfDay(addDays(now, -6)), to: endOfDay(now) };
       case '30d':
-        return { from: this.startOfDay(this.addDays(now, -29)), to: this.endOfDay(now) };
+        return { from: startOfDay(addDays(now, -29)), to: endOfDay(now) };
       case 'mtd':
-        return { from: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0), to: this.endOfDay(now) };
+        return { from: startOfMonth(now), to: endOfDay(now) };
       default: {
         const range = this.customRange.value;
         if (!range || !range[0] || !range[1]) {
           return null;
         }
-        return { from: this.startOfDay(range[0]), to: this.endOfDay(range[1]) };
+        return { from: startOfDay(range[0]), to: endOfDay(range[1]) };
       }
     }
-  }
-
-  private startOfDay(date: Date): Date {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  }
-
-  private endOfDay(date: Date): Date {
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-    return end;
-  }
-
-  private addDays(date: Date, days: number): Date {
-    const shifted = new Date(date);
-    shifted.setDate(shifted.getDate() + days);
-    return shifted;
   }
 }

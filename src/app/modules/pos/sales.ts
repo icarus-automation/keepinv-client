@@ -17,6 +17,7 @@ import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 
+import { endOfDayIso, startOfDayIso } from '../../../common/dates';
 import { httpErrorMessage } from '../../../common/http/http-error-message';
 import { MoneyPipe } from '../products/utils/money.pipe';
 import { PosService } from './services/pos.service';
@@ -148,8 +149,8 @@ export class Sales {
       search: this.searchControl.value.trim() || undefined,
       status: this.statusControl.value ?? undefined,
       paymentMethod: this.methodControl.value ?? undefined,
-      dateFrom: this.startOfDayIso(range?.[0]),
-      dateTo: this.endOfDayIso(range?.[1] ?? range?.[0]),
+      dateFrom: startOfDayIso(range?.[0]),
+      dateTo: endOfDayIso(range?.[1] ?? range?.[0]),
     };
 
     this.service
@@ -230,23 +231,5 @@ export class Sales {
       this.methodControl.value !== null ||
       (this.dateRange.value?.some(Boolean) ?? false)
     );
-  }
-
-  private startOfDayIso(date: Date | null | undefined): string | undefined {
-    if (!date) {
-      return undefined;
-    }
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    return start.toISOString();
-  }
-
-  private endOfDayIso(date: Date | null | undefined): string | undefined {
-    if (!date) {
-      return undefined;
-    }
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-    return end.toISOString();
   }
 }

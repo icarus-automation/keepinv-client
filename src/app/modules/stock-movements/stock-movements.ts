@@ -15,6 +15,7 @@ import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocompl
 import { DatePickerModule } from 'primeng/datepicker';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 
+import { endOfDayIso, startOfDayIso } from '../../../common/dates';
 import { httpErrorMessage } from '../../../common/http/http-error-message';
 import { ProductsService } from '../products/services/products.service';
 import { Product } from '../products/types/product.types';
@@ -142,8 +143,8 @@ export class StockMovements {
       limit: this.rows,
       productId: this.productFilter.value?.id ?? undefined,
       stockMovementTypeId: this.typeFilter.value ?? undefined,
-      dateFrom: this.startOfDayIso(range?.[0]),
-      dateTo: this.endOfDayIso(range?.[1] ?? range?.[0]),
+      dateFrom: startOfDayIso(range?.[0]),
+      dateTo: endOfDayIso(range?.[1] ?? range?.[0]),
     };
 
     this.service
@@ -215,23 +216,5 @@ export class StockMovements {
       this.typeFilter.value !== null ||
       (this.dateRange.value?.some(Boolean) ?? false)
     );
-  }
-
-  private startOfDayIso(date: Date | null | undefined): string | undefined {
-    if (!date) {
-      return undefined;
-    }
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    return start.toISOString();
-  }
-
-  private endOfDayIso(date: Date | null | undefined): string | undefined {
-    if (!date) {
-      return undefined;
-    }
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-    return end.toISOString();
   }
 }

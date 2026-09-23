@@ -1,3 +1,5 @@
+import { eachDayOfInterval, format, startOfDay } from 'date-fns';
+
 import { PaymentMethod, SaleListItem, paymentMethodMeta, priceToCents } from '../types/pos.types';
 
 /** A preset reporting window, or a custom date range. */
@@ -41,11 +43,6 @@ export interface ReportSummary {
   /** Largest bucket revenue, for scaling bar heights. At least 1 to avoid divide-by-zero. */
   readonly maxBucketCents: number;
 }
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
 
 interface MutableBucket {
   key: string;
@@ -114,27 +111,25 @@ function paymentSlices(completed: SaleListItem[], revenueCents: number): Payment
 
 /** One bar per day in [from, to]. Empty days render as zero-height bars, keeping the rhythm honest. */
 function dayBuckets(completed: SaleListItem[], from: Date, to: Date): TrendBucket[] {
-  const buckets: MutableBucket[] = [];
-  const byKey = new Map<string, MutableBucket>();
-  const cursor = startOfDay(from);
+  const start = startOfDay(from);
   const end = startOfDay(to);
-
-  // Cap at a quarter's worth of bars so a pathological custom range can't run away.
-  for (let guard = 0; cursor.getTime() <= end.getTime() && guard < 92; guard += 1) {
-    const bucket: MutableBucket = {
-      key: dayKey(cursor),
-      label: String(cursor.getDate()),
-      fullLabel: `${WEEKDAYS[cursor.getDay()]} ${MONTHS[cursor.getMonth()]} ${cursor.getDate()}`,
-      revenueCents: 0,
-      salesCount: 0,
-    };
-    buckets.push(bucket);
-    byKey.set(bucket.key, bucket);
-    cursor.setDate(cursor.getDate() + 1);
+  if (start.getTime() > end.getTime()) {
+    return [];
   }
 
+  // Cap at a quarter's worth of bars so a pathological custom range can't run away.
+  const days = eachDayOfInterval({ start, end }).slice(0, 92);
+  const buckets: MutableBucket[] = days.map((day) => ({
+    key: format(day, 'yyyy-MM-dd'),
+    label: format(day, 'd'),
+    fullLabel: format(day, 'EEE MMM d'),
+    revenueCents: 0,
+    salesCount: 0,
+  }));
+  const byKey = new Map(buckets.map((bucket) => [bucket.key, bucket]));
+
   for (const sale of completed) {
-    const bucket = byKey.get(dayKey(new Date(sale.completedAt)));
+    const bucket = byKey.get(format(new Date(sale.completedAt), 'yyyy-MM-dd'));
     if (bucket) {
       bucket.revenueCents += priceToCents(sale.total);
       bucket.salesCount += 1;
@@ -177,14 +172,6 @@ function hourBuckets(completed: SaleListItem[]): TrendBucket[] {
   }
 
   return buckets;
-}
-
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
 function shortHour(hour: number): string {

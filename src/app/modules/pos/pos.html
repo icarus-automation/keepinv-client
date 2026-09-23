@@ -42,88 +42,65 @@
         <div class="relative">
           <label for="pos-scan" class="sr-only">Scan or search items</label>
           <i
-            class="pi pi-search pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted"
+            class="pi pi-search pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-sm text-muted"
             aria-hidden="true"
           ></i>
-          <input
-            #scanInput
-            pInputText
-            id="pos-scan"
-            type="search"
+          <p-autocomplete
+            inputId="pos-scan"
             [formControl]="searchControl"
+            [suggestions]="results()"
+            (completeMethod)="searchItems($event)"
+            (onSelect)="onSuggestionSelect($event)"
+            (onInputKeydown)="onSearchKeydown($event)"
+            (onBlur)="onSearchBlur()"
+            optionLabel="name"
+            [optionDisabled]="searchOptionDisabled"
+            [delay]="250"
+            [minLength]="1"
+            [forceSelection]="false"
+            [autoOptionFocus]="true"
+            appendTo="body"
             placeholder="Scan barcode or search name, SKU, serial…"
-            autocomplete="off"
-            role="combobox"
-            aria-autocomplete="list"
-            aria-controls="pos-results"
-            [attr.aria-expanded]="resultsOpen()"
-            [attr.aria-activedescendant]="resultsOpen() ? optionId(highlighted()) : null"
-            (keydown.enter)="onScanEnter($event)"
-            (keydown.arrowdown)="moveHighlight(1, $event)"
-            (keydown.arrowup)="moveHighlight(-1, $event)"
-            (keydown.escape)="closeResults()"
-            (blur)="onScanBlur()"
-            class="w-full pl-10 text-base"
-          />
+            styleClass="w-full"
+            inputStyleClass="w-full pl-10 text-base"
+            scrollHeight="20rem"
+          >
+            <ng-template let-item pTemplate="item">
+              <div class="flex items-center gap-3 py-0.5 text-sm">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-medium text-ink">{{ item.name }}</p>
+                  <p class="truncate text-xs tabular-nums text-muted">
+                    {{ item.sku }}@if (item.unitIdentifier) {
+                      · <span class="text-ink">{{ item.unitIdentifier }}</span>
+                    }@else if (item.brand) {
+                      · {{ item.brand }}
+                    }
+                  </p>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-sm font-medium tabular-nums text-ink">{{ item.sellingPrice | money }}</p>
+                  @if (needsUnitPick(item)) {
+                    <p class="inline-flex items-center gap-1 text-xs font-medium text-signal">
+                      Choose unit
+                      <i class="pi pi-angle-right text-[0.7rem]" aria-hidden="true"></i>
+                    </p>
+                    <p class="text-[0.7rem] tabular-nums text-muted">{{ item.quantityOnHand }} in stock</p>
+                  } @else if (!item.isSellable) {
+                    <p class="text-xs font-medium text-danger">Unavailable</p>
+                  } @else if (item.kind === 'PRODUCT_UNIT') {
+                    <p class="text-xs text-muted">1 unit</p>
+                  } @else {
+                    <p class="text-xs tabular-nums text-muted">{{ item.quantityOnHand }} on hand</p>
+                  }
+                </div>
+              </div>
+            </ng-template>
+          </p-autocomplete>
           @if (searching()) {
             <i
-              class="pi pi-spin pi-spinner absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-muted"
+              class="pi pi-spin pi-spinner pointer-events-none absolute right-3.5 top-1/2 z-10 -translate-y-1/2 text-sm text-muted"
               aria-hidden="true"
             ></i>
-          }
-
-          <!-- Results pick list -->
-          @if (resultsOpen()) {
-            <ul
-              id="pos-results"
-              role="listbox"
-              aria-label="Search results"
-              class="absolute inset-x-0 top-full z-20 mt-1.5 max-h-80 overflow-auto rounded-lg border border-line bg-counter py-1 shadow-lg shadow-ink/5"
-            >
-              @for (item of results(); track item.productUnitId ?? item.productId; let i = $index) {
-                <li
-                  role="option"
-                  [id]="optionId(i)"
-                  [attr.aria-selected]="i === highlighted()"
-                  [attr.aria-disabled]="!canSelect(item)"
-                  (mousedown)="$event.preventDefault()"
-                  (mouseenter)="highlight(i)"
-                  (click)="addItem(item)"
-                  class="flex items-center gap-3 px-3 py-2 text-sm"
-                  [class]="
-                    (i === highlighted() ? 'bg-signal/10 ' : '') +
-                    (canSelect(item) ? 'cursor-pointer' : 'cursor-not-allowed opacity-60')
-                  "
-                >
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium text-ink">{{ item.name }}</p>
-                    <p class="truncate text-xs tabular-nums text-muted">
-                      {{ item.sku }}@if (item.unitIdentifier) {
-                        · <span class="text-ink">{{ item.unitIdentifier }}</span>
-                      }@else if (item.brand) {
-                        · {{ item.brand }}
-                      }
-                    </p>
-                  </div>
-                  <div class="shrink-0 text-right">
-                    <p class="text-sm font-medium tabular-nums text-ink">{{ item.sellingPrice | money }}</p>
-                    @if (needsUnitPick(item)) {
-                      <p class="inline-flex items-center gap-1 text-xs font-medium text-signal">
-                        Choose unit
-                        <i class="pi pi-angle-right text-[0.7rem]" aria-hidden="true"></i>
-                      </p>
-                      <p class="text-[0.7rem] tabular-nums text-muted">{{ item.quantityOnHand }} in stock</p>
-                    } @else if (!item.isSellable) {
-                      <p class="text-xs font-medium text-danger">Unavailable</p>
-                    } @else if (item.kind === 'PRODUCT_UNIT') {
-                      <p class="text-xs text-muted">1 unit</p>
-                    } @else {
-                      <p class="text-xs tabular-nums text-muted">{{ item.quantityOnHand }} on hand</p>
-                    }
-                  </div>
-                </li>
-              }
-            </ul>
           }
         </div>
 
@@ -381,89 +358,66 @@
     </div>
 
     <!-- Unit picker: choose which serialized unit leaves the shelf -->
-    @if (unitPickerProduct(); as product) {
-      <div
-        class="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
-        (click)="closeUnitPicker()"
-      >
-        <div
-          #unitPickerPanel
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="pos-unit-picker-title"
-          tabindex="-1"
-          (click)="$event.stopPropagation()"
-          (keydown.escape)="closeUnitPicker()"
-          class="flex max-h-[80vh] w-full flex-col overflow-hidden rounded-t-xl border border-line bg-counter shadow-xl outline-none sm:max-w-lg sm:rounded-xl"
+    <p-dialog
+      [visible]="unitPickerProduct() !== null"
+      (visibleChange)="onUnitDialogVisible($event)"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      [style]="{ width: 'min(32rem, calc(100vw - 2rem))' }"
+      styleClass="overflow-hidden"
+    >
+      <ng-template #header>
+        @if (unitPickerProduct(); as product) {
+          <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-ink">Choose a unit</h2>
+            <p class="truncate text-xs text-muted">
+              {{ product.name }} · <span class="tabular-nums">{{ product.sku }}</span>
+            </p>
+          </div>
+        }
+      </ng-template>
+
+      @if (unitPickerLoading()) {
+        <div class="flex items-center justify-center gap-2 px-4 py-12 text-sm text-muted">
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+          Loading units…
+        </div>
+      } @else if (unitPickerError(); as error) {
+        <div class="px-4 py-12 text-center">
+          <i class="pi pi-inbox text-2xl text-muted" aria-hidden="true"></i>
+          <p class="mt-2 text-sm font-medium text-ink">{{ error }}</p>
+        </div>
+      } @else {
+        <p-listbox
+          [options]="unitPickerUnits()"
+          optionLabel="unitIdentifier"
+          dataKey="productUnitId"
+          [metaKeySelection]="false"
+          ariaLabel="Available units"
+          scrollHeight="60vh"
+          styleClass="w-full border-0 shadow-none"
+          (onClick)="onUnitClick($event)"
         >
-          <div class="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
-            <div class="min-w-0">
-              <h2 id="pos-unit-picker-title" class="text-sm font-semibold text-ink">Choose a unit</h2>
-              <p class="truncate text-xs text-muted">
-                {{ product.name }} · <span class="tabular-nums">{{ product.sku }}</span>
+          <ng-template let-unit pTemplate="item">
+            <div class="flex items-center gap-3 py-0.5 text-sm">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-panel text-muted">
+                <i class="pi pi-tag text-xs" aria-hidden="true"></i>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium tabular-nums text-ink">{{ unit.unitIdentifier }}</p>
+                @if (unit.unitStatus) {
+                  <p class="truncate text-xs text-muted">{{ unit.unitStatus }}</p>
+                }
+              </div>
+              <p class="shrink-0 text-sm font-medium tabular-nums text-ink">
+                {{ unit.sellingPrice | money }}
               </p>
             </div>
-            <button
-              type="button"
-              (click)="closeUnitPicker()"
-              aria-label="Cancel unit selection"
-              class="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter"
-            >
-              <i class="pi pi-times text-xs" aria-hidden="true"></i>
-            </button>
-          </div>
-
-          @if (unitPickerLoading()) {
-            <div class="flex items-center justify-center gap-2 px-4 py-12 text-sm text-muted">
-              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-              Loading units…
-            </div>
-          } @else if (unitPickerError(); as error) {
-            <div class="px-4 py-12 text-center">
-              <i class="pi pi-inbox text-2xl text-muted" aria-hidden="true"></i>
-              <p class="mt-2 text-sm font-medium text-ink">{{ error }}</p>
-            </div>
-          } @else {
-            <ul
-              #unitPickerList
-              role="listbox"
-              tabindex="0"
-              aria-label="Available units"
-              [attr.aria-activedescendant]="unitOptionId(unitPickerHighlighted())"
-              (keydown.arrowdown)="moveUnitHighlight(1, $event)"
-              (keydown.arrowup)="moveUnitHighlight(-1, $event)"
-              (keydown.enter)="pickHighlightedUnit($event)"
-              (keydown.escape)="closeUnitPicker()"
-              class="min-h-0 flex-1 overflow-auto py-1 outline-none"
-            >
-              @for (unit of unitPickerUnits(); track unit.productUnitId; let i = $index) {
-                <li
-                  role="option"
-                  [id]="unitOptionId(i)"
-                  [attr.aria-selected]="i === unitPickerHighlighted()"
-                  (mouseenter)="setUnitHighlight(i)"
-                  (click)="pickUnit(unit)"
-                  class="flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm"
-                  [class]="i === unitPickerHighlighted() ? 'bg-signal/10' : ''"
-                >
-                  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-panel text-muted">
-                    <i class="pi pi-tag text-xs" aria-hidden="true"></i>
-                  </span>
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium tabular-nums text-ink">{{ unit.unitIdentifier }}</p>
-                    @if (unit.unitStatus) {
-                      <p class="truncate text-xs text-muted">{{ unit.unitStatus }}</p>
-                    }
-                  </div>
-                  <p class="shrink-0 text-sm font-medium tabular-nums text-ink">
-                    {{ unit.sellingPrice | money }}
-                  </p>
-                </li>
-              }
-            </ul>
-          }
-        </div>
-      </div>
-    }
+          </ng-template>
+        </p-listbox>
+      }
+    </p-dialog>
   }
 </div>
