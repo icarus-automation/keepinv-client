@@ -24,7 +24,10 @@ import { Listbox, ListboxClickEvent, ListboxModule } from 'primeng/listbox';
 import { TextareaModule } from 'primeng/textarea';
 
 import { httpErrorMessage } from '../../../common/http/http-error-message';
+import { CreditSalesService } from '../../../common/credit/credit-sales.service';
 import { MoneyPipe, formatPeso } from '../products/utils/money.pipe';
+import { CustomersService } from '../customers/services/customers.service';
+import { CustomerListItem } from '../customers/types/customer.types';
 import { PosService } from './services/pos.service';
 import {
   PAYMENT_METHODS,
@@ -33,6 +36,7 @@ import {
   PosSearchItem,
   SaleResult,
   priceToCents,
+  settleSale,
 } from './types/pos.types';
 import { Receipt } from './components/receipt';
 
@@ -92,12 +96,15 @@ const REFOCUS_DELAY_MS = 0;
 })
 export class Pos {
   private readonly service = inject(PosService);
+  private readonly customersService = inject(CustomersService);
+  private readonly creditSales = inject(CreditSalesService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly searchField = viewChild(AutoComplete);
   private readonly unitList = viewChild(Listbox);
 
   protected readonly phase = signal<'selling' | 'receipt'>('selling');
+  protected readonly creditEnabled = this.creditSales.enabled;
 
   // --- Cart ---
   protected readonly cart = signal<CartLine[]>([]);
@@ -132,6 +139,24 @@ export class Pos {
     initialValue: this.tenderControl.value,
   });
 
+  // --- Customer / credit ---
+  protected readonly customer = signal<CustomerListItem | null>(null);
+  protected readonly customerQuery = new FormControl('', { nonNullable: true });
+  protected readonly customerHits = signal<CustomerListItem[]>([]);
+  protected readonly addingCustomer = signal(false);
+  protected readonly customerError = signal<string | null>(null);
+  protected readonly creditControl = new FormControl<number | null>(null);
+  private readonly creditValue = toSignal(this.creditControl.valueChanges, {
+    initialValue: this.creditControl.value,
+  });
+  private readonly customerQueryValue = toSignal(this.customerQuery.valueChanges, {
+    initialValue: this.customerQuery.value,
+  });
+  protected readonly customerName = computed(() => {
+    const value = this.customerQueryValue();
+    return typeof value === 'string' ? value.trim() : '';
+  });
+
   // --- Note / checkout ---
   protected readonly showNote = signal(false);
   protected readonly noteControl = new FormControl('', { nonNullable: true });
@@ -148,41 +173,39 @@ export class Pos {
     this.cart().reduce((sum, line) => sum + line.quantity, 0),
   );
 
-  /** Cash is operator-entered; every other method tenders exactly the total. */
-  protected readonly effectiveTenderedCents = computed(() =>
-    this.method() === 'CASH'
-      ? priceToCents(this.tenderedValue() ?? 0)
-      : this.totalCents(),
+  protected readonly settlement = computed(() =>
+    settleSale({
+      committing: this.committing(),
+      cartCount: this.cart().length,
+      totalCents: this.totalCents(),
+      creditCents: this.creditEnabled() ? priceToCents(this.creditValue() ?? 0) : 0,
+      cashTenderedCents: priceToCents(this.tenderedValue() ?? 0),
+      cash: this.method() === 'CASH',
+      hasCustomer: this.customer() !== null,
+    }),
   );
-  protected readonly changeDueCents = computed(() =>
-    Math.max(0, this.effectiveTenderedCents() - this.totalCents()),
-  );
-
-  protected readonly canComplete = computed(
-    () =>
-      !this.committing() &&
-      this.cart().length > 0 &&
-      this.totalCents() > 0 &&
-      this.effectiveTenderedCents() >= this.totalCents(),
-  );
-
-  /** Why Complete is disabled, in counter-terse words. Null once the sale can go through. */
-  protected readonly completeHint = computed(() => {
-    if (this.cart().length === 0) {
-      return 'Scan an item to begin.';
-    }
-    if (this.effectiveTenderedCents() < this.totalCents()) {
-      return 'Enter the amount tendered.';
-    }
-    return null;
-  });
+  protected readonly canComplete = computed(() => this.settlement().canComplete);
+  protected readonly completeHint = computed(() => this.settlement().hint);
 
   // Formatted strings for display (peso, tabular).
   protected readonly subtotalDisplay = computed(() => formatPeso(this.subtotalCents() / 100));
   protected readonly totalDisplay = computed(() => formatPeso(this.totalCents() / 100));
-  protected readonly changeDueDisplay = computed(() => formatPeso(this.changeDueCents() / 100));
+  protected readonly creditDisplay = computed(() => formatPeso(this.settlement().creditCents / 100));
+  protected readonly changeDueDisplay = computed(() =>
+    formatPeso(this.settlement().changeDueCents / 100),
+  );
+
+  protected showOwed(balance: string): boolean {
+    return this.creditEnabled() || priceToCents(balance) > 0;
+  }
 
   constructor() {
+    effect(() => {
+      if (!this.creditEnabled() && this.creditControl.value != null) {
+        this.creditControl.setValue(null);
+      }
+    });
+
     // Keep the scan field focused whenever we're selling, so an RFID/barcode sweep
     // always lands in it. The receipt phase and the unit dialog release that focus.
     effect(() => {
@@ -557,19 +580,85 @@ export class Pos {
   protected setMethod(method: PaymentMethod): void {
     this.method.set(method);
     if (method !== 'CASH') {
-      // Non-cash tenders the exact total; clear any stale cash figure.
-      this.tenderControl.setValue(null, { emitEvent: false });
+      // Non-cash tenders the exact remainder; clear any stale cash figure.
+      this.tenderControl.setValue(null);
     }
     this.refocus();
   }
 
   protected applyTenderChip(chip: TenderChip): void {
     if (chip.kind === 'exact') {
-      this.tenderControl.setValue(this.totalCents() / 100);
+      this.tenderControl.setValue(this.settlement().amountDueCents / 100);
       return;
     }
     const current = this.tenderControl.value ?? 0;
     this.tenderControl.setValue(current + (chip.amount ?? 0));
+  }
+
+  /** Puts the whole total on credit and, for cash, clears the tendered amount. */
+  protected putAllOnCredit(): void {
+    if (!this.creditEnabled()) {
+      return;
+    }
+    this.creditControl.setValue(this.totalCents() / 100);
+    if (this.method() === 'CASH') {
+      this.tenderControl.setValue(0);
+    }
+  }
+
+  protected searchCustomers(event: AutoCompleteCompleteEvent): void {
+    const term = event.query.trim();
+    if (!term) {
+      this.customerHits.set([]);
+      return;
+    }
+    this.customersService
+      .list(term)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (items) => this.customerHits.set(items),
+        error: () => this.customerHits.set([]),
+      });
+  }
+
+  protected selectCustomer(event: AutoCompleteSelectEvent): void {
+    const item = event.value as CustomerListItem | null;
+    if (!item || typeof item !== 'object' || !('id' in item)) {
+      return;
+    }
+    this.customer.set(item);
+    this.customerQuery.setValue('');
+    this.customerHits.set([]);
+    this.customerError.set(null);
+  }
+
+  protected addCustomer(): void {
+    const name = this.customerName();
+    if (!name || this.addingCustomer()) {
+      return;
+    }
+    this.addingCustomer.set(true);
+    this.customerError.set(null);
+    this.customersService
+      .create({ name })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.addingCustomer.set(false)),
+      )
+      .subscribe({
+        next: (created) => {
+          this.customer.set({ ...created, balance: '0.00' });
+          this.customerQuery.setValue('');
+          this.customerHits.set([]);
+        },
+        error: (error: unknown) => this.customerError.set(httpErrorMessage(error)),
+      });
+  }
+
+  protected clearCustomer(): void {
+    this.customer.set(null);
+    this.customerError.set(null);
+    this.customerQuery.setValue('');
   }
 
   protected toggleNote(): void {
@@ -585,6 +674,8 @@ export class Pos {
     this.committing.set(true);
     this.checkoutError.set(null);
 
+    const settlement = this.settlement();
+    const customerId = this.customer()?.id;
     this.service
       .checkout({
         items: this.cart().map((line) => ({
@@ -593,7 +684,9 @@ export class Pos {
           quantity: line.quantity,
         })),
         paymentMethod: this.method(),
-        amountTendered: this.effectiveTenderedCents() / 100,
+        amountTendered: settlement.amountTenderedCents / 100,
+        ...(customerId ? { customerId } : {}),
+        ...(settlement.creditCents > 0 ? { creditAmount: settlement.creditCents / 100 } : {}),
         note: this.noteControl.value.trim() || undefined,
       })
       .pipe(
@@ -615,7 +708,12 @@ export class Pos {
     this.searchControl.setValue('', { emitEvent: false });
     this.results.set([]);
     this.method.set('CASH');
-    this.tenderControl.setValue(null, { emitEvent: false });
+    this.tenderControl.setValue(null);
+    this.creditControl.setValue(null);
+    this.customer.set(null);
+    this.customerQuery.setValue('');
+    this.customerHits.set([]);
+    this.customerError.set(null);
     this.noteControl.setValue('', { emitEvent: false });
     this.showNote.set(false);
     this.checkoutError.set(null);

@@ -81,6 +81,9 @@ export class PosService {
     if (query.dateTo) {
       params = params.set('dateTo', query.dateTo);
     }
+    if (query.customerId) {
+      params = params.set('customerId', query.customerId);
+    }
 
     return this.http
       .get<PaginatedApiResponse<SaleListItem>>(`${this.baseUrl}/sales`, { params })

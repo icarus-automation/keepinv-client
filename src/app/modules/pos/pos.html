@@ -234,6 +234,71 @@
             }
           </div>
 
+          <!-- Customer: optional for a walk-in, required once any amount is on credit. -->
+          <div class="mt-5">
+            <label for="pos-customer" class="text-xs font-medium text-muted">Customer</label>
+            @if (customer(); as customer) {
+              <div class="mt-1.5 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium text-ink">{{ customer.name }}</p>
+                  @if (customer.phone) {
+                    <p class="truncate text-xs tabular-nums text-muted">{{ customer.phone }}</p>
+                  }
+                </div>
+                <button
+                  type="button"
+                  (click)="clearCustomer()"
+                  class="shrink-0 rounded-md border border-line px-2.5 py-1 text-xs font-medium text-muted outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter"
+                >
+                  Clear
+                </button>
+              </div>
+            } @else {
+              <div class="mt-1.5 flex items-start gap-2">
+                <p-autocomplete
+                  inputId="pos-customer"
+                  [formControl]="customerQuery"
+                  [suggestions]="customerHits()"
+                  (completeMethod)="searchCustomers($event)"
+                  (onSelect)="selectCustomer($event)"
+                  optionLabel="name"
+                  [delay]="250"
+                  [minLength]="1"
+                  [forceSelection]="false"
+                  appendTo="body"
+                  placeholder="Search name or phone"
+                  styleClass="min-w-0 flex-1"
+                  inputStyleClass="w-full text-sm"
+                  scrollHeight="16rem"
+                  ariaLabel="Search customers"
+                >
+                  <ng-template let-item pTemplate="item">
+                    <div class="flex items-center gap-3 py-0.5 text-sm">
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate font-medium text-ink">{{ item.name }}</p>
+                        <p class="truncate text-xs tabular-nums text-muted">{{ item.phone || 'No phone' }}</p>
+                      </div>
+                      @if (showOwed(item.balance)) {
+                        <p class="shrink-0 text-xs tabular-nums text-muted">{{ item.balance | money }}</p>
+                      }
+                    </div>
+                  </ng-template>
+                </p-autocomplete>
+                <button
+                  type="button"
+                  (click)="addCustomer()"
+                  [disabled]="addingCustomer() || !customerName()"
+                  class="inline-flex shrink-0 items-center rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-ink outline-none transition-colors hover:bg-line/60 focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {{ addingCustomer() ? 'Adding...' : 'Add' }}
+                </button>
+              </div>
+              @if (customerError(); as error) {
+                <p role="alert" class="mt-1.5 text-xs text-danger">{{ error }}</p>
+              }
+            }
+          </div>
+
           <!-- Payment method -->
           <fieldset class="mt-5">
             <legend class="text-xs font-medium text-muted">Payment method</legend>
@@ -252,6 +317,30 @@
               }
             </div>
           </fieldset>
+
+          @if (creditEnabled()) {
+            <div class="mt-5">
+              <label for="pos-credit" class="text-xs font-medium text-muted">On credit</label>
+              <input
+                pInputText
+                id="pos-credit"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                [formControl]="creditControl"
+                placeholder="0.00"
+                class="mt-1.5 w-full text-right text-lg tabular-nums"
+              />
+              <button
+                type="button"
+                (click)="putAllOnCredit()"
+                class="mt-2 rounded-md border border-line px-2.5 py-1 text-xs font-medium text-muted outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter"
+              >
+                All on credit
+              </button>
+            </div>
+          }
 
           <!-- Cash tender -->
           @if (method() === 'CASH') {
@@ -280,7 +369,29 @@
                 }
               </div>
 
-              <div class="mt-4 flex items-baseline justify-between border-t border-line pt-3">
+              <div class="mt-4 border-t border-line pt-3">
+                @if (settlement().creditCents > 0) {
+                  <div class="flex items-baseline justify-between">
+                    <span class="text-sm text-muted">On credit</span>
+                    <span class="text-sm font-medium tabular-nums text-ink">{{ creditDisplay() }}</span>
+                  </div>
+                }
+                <div
+                  class="flex items-baseline justify-between"
+                  [class.mt-1]="settlement().creditCents > 0"
+                >
+                  <span class="text-sm font-medium text-ink">Change due</span>
+                  <span class="text-xl font-semibold tabular-nums text-ink">{{ changeDueDisplay() }}</span>
+                </div>
+              </div>
+            </div>
+          } @else if (settlement().creditCents > 0) {
+            <div class="mt-4 border-t border-line pt-3">
+              <div class="flex items-baseline justify-between">
+                <span class="text-sm text-muted">On credit</span>
+                <span class="text-sm font-medium tabular-nums text-ink">{{ creditDisplay() }}</span>
+              </div>
+              <div class="mt-1 flex items-baseline justify-between">
                 <span class="text-sm font-medium text-ink">Change due</span>
                 <span class="text-xl font-semibold tabular-nums text-ink">{{ changeDueDisplay() }}</span>
               </div>

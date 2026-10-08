@@ -8,24 +8,28 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, filter, finalize, merge } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, finalize, map, merge } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { AutoCompleteCompleteEvent, AutoCompleteModule, AutoCompleteSelectEvent } from 'primeng/autocomplete';
 
 import { endOfDayIso, startOfDayIso } from '../../../common/dates';
 import { httpErrorMessage } from '../../../common/http/http-error-message';
 import { MoneyPipe } from '../products/utils/money.pipe';
+import { CustomersService } from '../customers/services/customers.service';
+import { CustomerListItem } from '../customers/types/customer.types';
 import { PosService } from './services/pos.service';
 import {
   PAYMENT_METHODS,
   PaymentMethod,
   SaleListItem,
   SaleStatus,
+  SaleWithRelations,
   SalesListQuery,
   paymentMethodMeta,
 } from './types/pos.types';
@@ -54,6 +58,7 @@ interface SelectOption<T> {
     SelectModule,
     DatePickerModule,
     TableModule,
+    AutoCompleteModule,
     SaleStatusBadge,
     SaleDetail,
   ],
@@ -62,7 +67,9 @@ interface SelectOption<T> {
 })
 export class Sales {
   private readonly service = inject(PosService);
+  private readonly customersService = inject(CustomersService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly sales = signal<SaleListItem[]>([]);
@@ -79,6 +86,10 @@ export class Sales {
   protected readonly methodControl = new FormControl<PaymentMethod | null>(null);
   /** Range picker value: [from, to]. */
   protected readonly dateRange = new FormControl<Date[] | null>(null);
+  protected readonly customerId = signal<string | null>(null);
+  protected readonly customerPick = signal<{ id: string; name: string } | null>(null);
+  protected readonly customerSearch = new FormControl('', { nonNullable: true });
+  protected readonly customerHits = signal<CustomerListItem[]>([]);
 
   protected readonly statusOptions: SelectOption<SaleStatus>[] = [
     { label: 'Completed', value: 'COMPLETED' },
@@ -98,6 +109,11 @@ export class Sales {
     () => !this.loading() && !this.loadError() && this.total() === 0 && !this.hasFilters(),
   );
 
+  /** Sale to open once the filtered page returns. Set from `?saleId=`. */
+  private queuedSaleId: string | null = null;
+  /** Bumped on every load so a late getSale cannot reopen a sale the operator left. */
+  private saleRequest = 0;
+
   constructor() {
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
@@ -116,7 +132,23 @@ export class Sales {
       )
       .subscribe(() => this.applyFilters());
 
-    this.load();
+    this.route.queryParamMap
+      .pipe(
+        map((params) => ({
+          customerId: params.get('customerId'),
+          saleId: params.get('saleId'),
+        })),
+        distinctUntilChanged((a, b) => a.customerId === b.customerId && a.saleId === b.saleId),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ customerId, saleId }) => {
+        this.customerId.set(customerId);
+        this.queuedSaleId = saleId;
+        this.syncCustomerLabel(customerId);
+        this.first.set(0);
+        this.selected.set(null);
+        this.load();
+      });
   }
 
   /** See products.ts: the table re-emits onLazyLoad on binding changes; only act on a real page change. */
@@ -138,6 +170,7 @@ export class Sales {
   }
 
   protected load(): void {
+    const request = ++this.saleRequest;
     this.loading.set(true);
     this.loadError.set(null);
     this.hasFilters.set(this.computeHasFilters());
@@ -151,16 +184,24 @@ export class Sales {
       paymentMethod: this.methodControl.value ?? undefined,
       dateFrom: startOfDayIso(range?.[0]),
       dateTo: endOfDayIso(range?.[1] ?? range?.[0]),
+      customerId: this.customerId() ?? undefined,
     };
 
     this.service
       .listSales(query)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loading.set(false)),
+        finalize(() => {
+          if (request === this.saleRequest) {
+            this.loading.set(false);
+          }
+        }),
       )
       .subscribe({
         next: ({ items, meta }) => {
+          if (request !== this.saleRequest) {
+            return;
+          }
           this.sales.set(items);
           this.total.set(meta.total);
           // Voiding the last row on a page can leave us past the final page; step back.
@@ -171,12 +212,29 @@ export class Sales {
           }
           this.syncSelection(items);
         },
-        error: (error: unknown) => this.loadError.set(httpErrorMessage(error)),
+        error: (error: unknown) => {
+          if (request !== this.saleRequest) {
+            return;
+          }
+          this.loadError.set(httpErrorMessage(error));
+        },
       });
   }
 
-  /** Keep the current selection pointed at a fresh row, or open the top sale on desktop. */
+  /** Keep the current selection pointed at a fresh row, or open the sale named in the URL. */
   private syncSelection(items: SaleListItem[]): void {
+    const saleId = this.queuedSaleId;
+    if (saleId) {
+      this.queuedSaleId = null;
+      const match = items.find((item) => item.id === saleId);
+      if (match) {
+        this.selectSale(match);
+        return;
+      }
+      this.openQueuedSale(saleId, items);
+      return;
+    }
+
     const current = this.selected();
     if (current) {
       const match = items.find((item) => item.id === current.id);
@@ -188,12 +246,108 @@ export class Sales {
     }
   }
 
+  private openQueuedSale(id: string, items: SaleListItem[]): void {
+    const request = this.saleRequest;
+    this.service
+      .getSale(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ sale }) => {
+          if (request !== this.saleRequest) {
+            return;
+          }
+          this.selectSale(this.toListItem(sale));
+        },
+        error: () => {
+          if (request !== this.saleRequest) {
+            return;
+          }
+          if (items.length) {
+            this.selected.set(items[0]);
+          }
+        },
+      });
+  }
+
+  private toListItem(sale: SaleWithRelations): SaleListItem {
+    return {
+      id: sale.id,
+      receiptNo: sale.receiptNo,
+      status: sale.status,
+      subtotal: sale.subtotal,
+      total: sale.total,
+      amountTendered: sale.amountTendered,
+      changeDue: sale.changeDue,
+      creditAmount: sale.creditAmount,
+      paymentMethod: sale.paymentMethod,
+      note: sale.note,
+      completedAt: sale.completedAt,
+      voidedAt: sale.voidedAt,
+      voidReason: sale.voidReason,
+      cashier: sale.cashier,
+      voidedBy: sale.voidedBy,
+      customer: sale.customer,
+      _count: { items: sale.items.length },
+    };
+  }
+
   protected clearFilters(): void {
     this.searchControl.setValue('', { emitEvent: false });
     this.statusControl.setValue(null, { emitEvent: false });
     this.methodControl.setValue(null, { emitEvent: false });
     this.dateRange.setValue(null, { emitEvent: false });
+    this.customerSearch.setValue('', { emitEvent: false });
+    this.customerHits.set([]);
+    const params = this.route.snapshot.queryParamMap;
+    if (params.has('customerId') || params.has('saleId')) {
+      void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+      return;
+    }
+    this.customerId.set(null);
+    this.customerPick.set(null);
     this.applyFilters();
+  }
+
+  protected searchCustomers(event: AutoCompleteCompleteEvent): void {
+    const term = event.query.trim();
+    if (!term) {
+      this.customerHits.set([]);
+      return;
+    }
+    this.customersService
+      .list(term)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (items) => this.customerHits.set(items),
+        error: () => this.customerHits.set([]),
+      });
+  }
+
+  protected chooseCustomer(event: AutoCompleteSelectEvent): void {
+    const customer = event.value as CustomerListItem | null;
+    if (!customer || typeof customer !== 'object' || !('id' in customer)) {
+      return;
+    }
+    this.customerPick.set({ id: customer.id, name: customer.name });
+    this.customerSearch.setValue('', { emitEvent: false });
+    this.customerHits.set([]);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { customerId: customer.id, saleId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  protected clearCustomer(): void {
+    this.customerSearch.setValue('', { emitEvent: false });
+    this.customerHits.set([]);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { customerId: null, saleId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   protected selectSale(sale: SaleListItem): void {
@@ -229,7 +383,33 @@ export class Sales {
       !!this.searchControl.value.trim() ||
       this.statusControl.value !== null ||
       this.methodControl.value !== null ||
-      (this.dateRange.value?.some(Boolean) ?? false)
+      (this.dateRange.value?.some(Boolean) ?? false) ||
+      this.customerId() !== null
     );
+  }
+
+  private syncCustomerLabel(customerId: string | null): void {
+    if (!customerId) {
+      this.customerPick.set(null);
+      return;
+    }
+    if (this.customerPick()?.id === customerId) {
+      return;
+    }
+    this.customersService
+      .get(customerId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (customer) => {
+          if (this.customerId() === customerId) {
+            this.customerPick.set({ id: customer.id, name: customer.name });
+          }
+        },
+        error: () => {
+          if (this.customerId() === customerId) {
+            this.customerPick.set({ id: customerId, name: 'Customer' });
+          }
+        },
+      });
   }
 }

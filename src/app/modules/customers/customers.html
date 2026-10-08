@@ -1,0 +1,185 @@
+<div class="page">
+  <p class="max-w-prose text-sm text-muted">
+    @if (creditEnabled()) {
+      People who buy on account, with what they still owe.
+    } @else {
+      Customer records and purchase history.
+    }
+  </p>
+
+  <form [formGroup]="addForm" (ngSubmit)="addCustomer()" novalidate class="mt-6">
+    <label for="add-customer" class="block text-sm font-medium">Add a customer</label>
+    <div class="mt-1.5 flex items-start gap-2 sm:max-w-md">
+      <div class="min-w-0 flex-1">
+        <input
+          pInputText
+          id="add-customer"
+          #addInput
+          type="text"
+          formControlName="name"
+          placeholder="Customer name"
+          autocomplete="off"
+          maxlength="120"
+          [invalid]="!!addError()"
+          [attr.aria-describedby]="addError() ? 'add-customer-error' : null"
+          class="w-full text-sm"
+        />
+        @if (addError()) {
+          <p id="add-customer-error" role="alert" class="mt-1.5 text-xs text-danger">{{ addError() }}</p>
+        }
+      </div>
+      <button
+        type="submit"
+        [disabled]="creating()"
+        class="inline-flex shrink-0 items-center rounded-md border border-line px-3 py-2 text-sm font-medium text-ink outline-none transition-colors hover:bg-line/60 focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {{ creating() ? 'Adding...' : 'Add' }}
+      </button>
+    </div>
+  </form>
+
+  @if (loading() && customers().length === 0) {
+    <div class="mt-8 rounded-lg border border-line bg-counter p-4">
+      @for (placeholder of [0, 1, 2, 3, 4]; track placeholder) {
+        <div class="flex items-center justify-between gap-3 border-b border-line py-3 last:border-0">
+          <div class="h-3.5 w-52 animate-pulse rounded bg-line motion-reduce:animate-none"></div>
+          <div class="h-3.5 w-16 animate-pulse rounded bg-line motion-reduce:animate-none"></div>
+        </div>
+      }
+    </div>
+  } @else if (loadError() && customers().length === 0) {
+    <div class="mt-8 rounded-lg border border-line bg-counter px-6 py-12 text-center">
+      <p class="text-sm font-medium text-ink">Could not load customers</p>
+      <p class="mx-auto mt-1 max-w-sm text-sm text-muted">{{ loadError() }}</p>
+      <p-button type="button" label="Retry" [text]="true" (onClick)="load()" styleClass="mt-3 font-medium" />
+    </div>
+  } @else if (isEmpty()) {
+    <div class="mt-8 rounded-lg border border-dashed border-line px-6 py-16 text-center">
+      <span class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-panel text-muted">
+        <i class="pi pi-users text-xl" aria-hidden="true"></i>
+      </span>
+      <p class="mt-3 text-sm font-medium text-ink">No customers yet</p>
+      <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
+        Add a customer above, or from the point of sale.
+      </p>
+    </div>
+  } @else {
+    <div class="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div class="relative min-w-0 flex-1">
+        <label for="customer-search" class="sr-only">Search customers</label>
+        <i
+          class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted"
+          aria-hidden="true"
+        ></i>
+        <input
+          pInputText
+          id="customer-search"
+          type="search"
+          [formControl]="searchControl"
+          placeholder="Search name or phone"
+          autocomplete="off"
+          class="w-full pl-9 text-sm"
+        />
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+      @if (creditEnabled()) {
+        <label
+          class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-counter px-3 py-2 text-sm font-medium text-ink"
+        >
+          <p-checkbox [formControl]="balanceControl" [binary]="true" inputId="has-balance" />
+          Has balance
+        </label>
+      }
+        @if (hasFilters()) {
+          <p-button
+            type="button"
+            label="Clear"
+            icon="pi pi-times"
+            [text]="true"
+            (onClick)="clearFilters()"
+            styleClass="text-muted"
+          />
+        }
+      </div>
+    </div>
+
+    <div class="mt-4 lg:grid lg:grid-cols-[26rem_minmax(0,1fr)] lg:items-start lg:gap-5">
+      <section
+        aria-label="Customer directory"
+        class="overflow-hidden rounded-lg border border-line bg-counter lg:block"
+        [class.hidden]="detailOpenMobile()"
+      >
+        <p-table
+          [value]="customers()"
+          dataKey="id"
+          [loading]="loading()"
+          selectionMode="single"
+          [selection]="selected()"
+          (selectionChange)="onSelectionChange($event)"
+          [rowHover]="true"
+          styleClass="text-sm"
+        >
+          <ng-template pTemplate="body" let-customer>
+            <tr [pSelectableRow]="customer" class="cursor-pointer">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-medium text-ink">{{ customer.name }}</p>
+                    <p class="truncate text-xs tabular-nums text-muted">
+                      {{ customer.phone || 'No phone' }}
+                    </p>
+                  </div>
+                  @if (showBalance(customer.balance)) {
+                    <p class="shrink-0 text-right text-sm font-medium tabular-nums text-ink">
+                      {{ customer.balance | money }}
+                    </p>
+                  }
+                  <i class="pi pi-angle-right shrink-0 text-muted lg:hidden" aria-hidden="true"></i>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td class="px-4 py-10 text-center text-sm text-muted">
+                No customers match these filters.
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+
+      <section
+        aria-label="Customer details"
+        class="overflow-hidden rounded-lg border border-line bg-counter lg:block lg:min-h-[32rem]"
+        [class.hidden]="!detailOpenMobile()"
+      >
+        @if (selected(); as customer) {
+          <div class="border-b border-line px-3 py-2 lg:hidden">
+            <button
+              type="button"
+              (click)="backToList()"
+              class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-muted outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-counter"
+            >
+              <i class="pi pi-angle-left text-base" aria-hidden="true"></i>
+              All customers
+            </button>
+          </div>
+          <app-customer-detail [customer]="customer" (updated)="onCustomerUpdated($event)" />
+        } @else {
+          <div class="grid h-full place-items-center px-6 py-20 text-center">
+            <div>
+              <span class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-panel text-muted">
+                <i class="pi pi-users text-xl" aria-hidden="true"></i>
+              </span>
+              <p class="mt-3 text-sm font-medium text-ink">Select a customer</p>
+              <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
+                Pick a customer to see their balance and purchases.
+              </p>
+            </div>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</div>

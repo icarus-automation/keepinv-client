@@ -46,6 +46,10 @@ export interface CheckoutRequest {
   items: CheckoutItem[];
   paymentMethod: PaymentMethod;
   amountTendered: number;
+  /** Omitted for a walk-in. */
+  customerId?: string;
+  /** Omitted when nothing is put on credit. A number with at most 2 decimals. */
+  creditAmount?: number;
   note?: string;
 }
 
@@ -75,8 +79,21 @@ export interface ReceiptData {
   cashier: { id: string; name: string; email: string };
   items: ReceiptItemData[];
   totals: { subtotal: string; total: string };
-  payment: { method: PaymentMethod; amountTendered: string; changeDue: string };
+  payment: {
+    method: PaymentMethod;
+    amountTendered: string;
+    changeDue: string;
+    creditAmount?: string;
+  };
+  customer?: { id: string; name: string; phone?: string };
   note?: string;
+}
+
+/** Customer embedded on a sale row. Null when the sale was a walk-in. */
+export interface SaleCustomer {
+  id: string;
+  name: string;
+  phone: string | null;
 }
 
 /** A cashier/voider as embedded on a sale. */
@@ -101,8 +118,10 @@ export interface SaleListItem {
   completedAt: string;
   voidedAt: string | null;
   voidReason: string | null;
+  creditAmount: string;
   cashier: PosUser | null;
   voidedBy: PosUser | null;
+  customer: SaleCustomer | null;
   _count: { items: number };
 }
 
@@ -134,8 +153,10 @@ export interface SaleWithRelations {
   completedAt: string;
   voidedAt: string | null;
   voidReason: string | null;
+  creditAmount: string;
   cashier: PosUser | null;
   voidedBy: PosUser | null;
+  customer: SaleCustomer | null;
   items: SaleItem[];
 }
 
@@ -155,6 +176,56 @@ export interface SalesListQuery {
   paymentMethod?: PaymentMethod;
   dateFrom?: string;
   dateTo?: string;
+  customerId?: string;
+}
+
+/**
+ * What the tender rail is allowed to do with the cart it already has.
+ * Card and wallet tenders have no change, so they cover exactly the part
+ * credit did not. Cash must cover that same remainder, and may run over.
+ */
+export interface SaleSettlement {
+  readonly creditCents: number;
+  readonly amountDueCents: number;
+  readonly amountTenderedCents: number;
+  readonly changeDueCents: number;
+  readonly canComplete: boolean;
+  readonly hint: string | null;
+}
+
+export function settleSale(input: {
+  committing: boolean;
+  cartCount: number;
+  totalCents: number;
+  creditCents: number;
+  cashTenderedCents: number;
+  cash: boolean;
+  hasCustomer: boolean;
+}): SaleSettlement {
+  const creditCents = Math.max(0, input.creditCents);
+  const amountDueCents = Math.max(0, input.totalCents - creditCents);
+  const amountTenderedCents = input.cash ? Math.max(0, input.cashTenderedCents) : amountDueCents;
+  const changeDueCents = Math.max(0, amountTenderedCents - amountDueCents);
+  const base = { creditCents, amountDueCents, amountTenderedCents, changeDueCents };
+
+  if (input.cartCount === 0) {
+    return { ...base, canComplete: false, hint: 'Scan an item to begin.' };
+  }
+  if (creditCents > input.totalCents) {
+    return { ...base, canComplete: false, hint: 'Credit is more than the sale total.' };
+  }
+  if (creditCents > 0 && !input.hasCustomer) {
+    return { ...base, canComplete: false, hint: 'Choose a customer.' };
+  }
+  if (amountTenderedCents < amountDueCents) {
+    return { ...base, canComplete: false, hint: 'Enter the amount tendered.' };
+  }
+
+  return {
+    ...base,
+    canComplete: !input.committing && input.totalCents > 0,
+    hint: null,
+  };
 }
 
 /** Display metadata for a payment method: the chip label and its icon. */

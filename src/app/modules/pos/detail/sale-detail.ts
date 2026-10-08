@@ -73,6 +73,9 @@ export class SaleDetail {
   });
   protected readonly voidedAt = computed(() => this.result()?.sale.voidedAt ?? null);
   protected readonly voidReasonText = computed(() => this.result()?.sale.voidReason ?? null);
+  protected readonly customerName = computed(
+    () => this.result()?.sale.customer?.name ?? this.sale().customer?.name ?? null,
+  );
 
   constructor() {
     // A new selection loads its receipt and clears any in-progress void.

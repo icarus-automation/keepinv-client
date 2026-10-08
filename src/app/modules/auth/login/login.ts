@@ -21,6 +21,7 @@ import { AuthService } from '../services/auth.service';
 import { OrganizationService } from '../../organization/services/organization.service';
 import { EntitlementsService } from '../../../../common/entitlements/entitlements.service';
 import { PricingDefaultsService } from '../../../../common/pricing/pricing-defaults.service';
+import { CreditSalesService } from '../../../../common/credit/credit-sales.service';
 
 @Component({
   selector: 'app-login',
@@ -34,6 +35,7 @@ export class Login {
   private readonly organizationService = inject(OrganizationService);
   private readonly entitlements = inject(EntitlementsService);
   private readonly pricingDefaults = inject(PricingDefaultsService);
+  private readonly creditSales = inject(CreditSalesService);
   private readonly router = inject(Router);
 
   private readonly emailInput = viewChild<ElementRef<HTMLInputElement>>('emailInput');
@@ -76,6 +78,7 @@ export class Login {
             this.organizationService.loadActiveOrganization(),
             this.entitlements.load(),
             this.pricingDefaults.load(),
+            this.creditSales.load(),
           ]),
         ),
       )

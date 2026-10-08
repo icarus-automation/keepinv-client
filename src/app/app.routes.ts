@@ -51,6 +51,12 @@ export const routes: Routes = [
         loadComponent: () => import('./modules/pos/sales').then((m) => m.Sales),
       },
       {
+        path: 'customers',
+        title: 'Customers',
+        canActivate: [posGuard],
+        loadComponent: () => import('./modules/customers/customers').then((m) => m.Customers),
+      },
+      {
         path: 'reports',
         title: 'Sales Report',
         canActivate: [posGuard],

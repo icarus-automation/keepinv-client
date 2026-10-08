@@ -1,6 +1,6 @@
 <div class="page">
   <p class="max-w-prose text-sm text-muted">
-    Shop name, logo, pricing default, and this screen's text size.
+    Shop name, logo, pricing default, credit, and this screen's text size.
   </p>
 
   <section class="mt-8" aria-labelledby="org-heading">
@@ -117,6 +117,46 @@
 
     <div class="mt-3 rounded-lg border border-line bg-counter p-4 sm:p-5">
       <app-pricing-defaults-form />
+    </div>
+  </section>
+
+  <section class="mt-8" aria-labelledby="credit-heading">
+    <h2 id="credit-heading" class="text-sm font-semibold tracking-tight text-ink">Credit</h2>
+    <p class="mt-1 max-w-prose text-sm text-muted">
+      A sale can be partly or fully unpaid. The unpaid part is added to the customer's balance.
+    </p>
+
+    <div class="mt-3 rounded-lg border border-line bg-counter p-4 sm:p-5">
+      @if (canManage()) {
+        <label class="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            class="mt-0.5 h-4 w-4 shrink-0 accent-signal"
+            [checked]="creditEnabled()"
+            [disabled]="savingCredit()"
+            (change)="setCreditSales($event)"
+          />
+          <span>
+            <span class="block text-sm font-medium text-ink">Credit sales</span>
+            <span class="mt-1 block max-w-prose text-sm text-muted">
+              Off until you turn this on. Turning it off stops new credit sales. Anyone who already
+              owes can still pay it down.
+            </span>
+          </span>
+        </label>
+        <p class="mt-2 min-h-4 text-xs" role="status" aria-live="polite">
+          @if (creditError(); as message) {
+            <span class="text-danger">{{ message }}</span>
+          } @else if (savingCredit()) {
+            <span class="text-muted">Saving…</span>
+          }
+        </p>
+      } @else {
+        <p class="text-sm font-medium text-ink">
+          {{ creditEnabled() ? 'Credit sales are on.' : 'Credit sales are off.' }}
+        </p>
+        <p class="mt-1 text-sm text-muted">Only owners and admins can change this.</p>
+      }
     </div>
   </section>
 

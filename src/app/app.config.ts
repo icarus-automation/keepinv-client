@@ -18,6 +18,7 @@ import { OrganizationService } from './modules/organization/services/organizatio
 import { EntitlementsService } from '../common/entitlements/entitlements.service';
 import { PreferencesService } from '../common/preferences/preferences.service';
 import { PricingDefaultsService } from '../common/pricing/pricing-defaults.service';
+import { CreditSalesService } from '../common/credit/credit-sales.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -33,6 +34,7 @@ export const appConfig: ApplicationConfig = {
       const organizations = inject(OrganizationService);
       const entitlements = inject(EntitlementsService);
       const pricingDefaults = inject(PricingDefaultsService);
+      const creditSales = inject(CreditSalesService);
       return auth.loadSession().pipe(
         switchMap((user) =>
           user
@@ -40,6 +42,7 @@ export const appConfig: ApplicationConfig = {
                 organizations.loadActiveOrganization(),
                 entitlements.load(),
                 pricingDefaults.load(),
+                creditSales.load(),
               ])
             : of(null),
         ),

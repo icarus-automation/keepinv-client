@@ -17,6 +17,12 @@
       <dt class="text-muted">Cashier</dt>
       <dd class="min-w-0 truncate text-right">{{ data().cashier.name }}</dd>
     </div>
+    @if (data().customer; as customer) {
+      <div class="flex items-center justify-between gap-3">
+        <dt class="text-muted">Customer</dt>
+        <dd class="min-w-0 truncate text-right">{{ customer.name }}</dd>
+      </div>
+    }
   </dl>
 
   <ul class="mt-3 border-t border-dashed border-line pt-1">
@@ -52,6 +58,12 @@
       <dt class="text-muted">{{ paymentLabel(data().payment.method) }}</dt>
       <dd class="tabular-nums">{{ data().payment.amountTendered | money }}</dd>
     </div>
+    @if (data().payment.creditAmount; as credit) {
+      <div class="mt-1 flex items-center justify-between gap-3">
+        <dt class="text-muted">On credit</dt>
+        <dd class="tabular-nums">{{ credit | money }}</dd>
+      </div>
+    }
     <div class="mt-1 flex items-baseline justify-between gap-3">
       <dt class="font-medium">Change</dt>
       <dd class="text-base font-semibold tabular-nums">{{ data().payment.changeDue | money }}</dd>

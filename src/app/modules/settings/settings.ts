@@ -17,11 +17,12 @@ import { OrganizationService } from '../organization/services/organization.servi
 import { orgMonogram, orgRoleLabel } from '../organization/organization.util';
 import { OrganizationLogo } from './organization-logo';
 import { PricingDefaultsForm } from './pricing-defaults-form';
+import { CreditSalesService } from '../../../common/credit/credit-sales.service';
 
 /**
  * Two scopes on one page: the organization (shared across the team, editable by
- * owners and admins, covering identity and the default pricing rule) and per-device
- * display preferences (this browser only).
+ * owners and admins, covering identity, the default pricing rule, and credit
+ * sales) and per-device display preferences (this browser only).
  * Org reads and writes go through {@link OrganizationService}; owners/admins can
  * upload/replace/remove the logo directly via {@link OrganizationLogo}.
  */
@@ -40,6 +41,7 @@ import { PricingDefaultsForm } from './pricing-defaults-form';
 export class Settings {
   private readonly preferences = inject(PreferencesService);
   private readonly organizationService = inject(OrganizationService);
+  private readonly creditSales = inject(CreditSalesService);
   private readonly formBuilder = inject(FormBuilder);
 
   protected readonly textScaleOptions = this.preferences.textScaleOptions;
@@ -51,6 +53,10 @@ export class Settings {
   protected readonly orgMonogram = computed(() => orgMonogram(this.organization()?.name));
 
   protected readonly roleLabel = computed(() => orgRoleLabel(this.organizationService.myRole()));
+
+  protected readonly creditEnabled = this.creditSales.enabled;
+  protected readonly savingCredit = signal(false);
+  protected readonly creditError = signal<string | null>(null);
 
   protected readonly saving = signal(false);
   protected readonly saveError = signal<string | null>(null);
@@ -84,6 +90,29 @@ export class Settings {
 
   protected setTextScale(id: TextScaleId): void {
     this.preferences.setTextScale(id);
+  }
+
+  protected setCreditSales(event: Event): void {
+    if (!this.canManage() || this.savingCredit()) {
+      return;
+    }
+    const input = event.target as HTMLInputElement;
+    const enabled = input.checked;
+    const previous = this.creditEnabled();
+    if (enabled === previous) {
+      return;
+    }
+
+    this.savingCredit.set(true);
+    this.creditError.set(null);
+    this.creditSales.update(enabled).subscribe({
+      next: () => this.savingCredit.set(false),
+      error: (error: unknown) => {
+        input.checked = previous;
+        this.savingCredit.set(false);
+        this.creditError.set(httpErrorMessage(error));
+      },
+    });
   }
 
   protected nameInvalid(): boolean {

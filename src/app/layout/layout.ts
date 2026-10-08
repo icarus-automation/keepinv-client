@@ -92,7 +92,7 @@ export class Layout {
   private readonly destroyRef = inject(DestroyRef);
 
   /** Paths that belong to the POS module — hidden for BASIC (Inventory-only) tenants. */
-  private static readonly POS_PATHS = new Set(['pos', 'sales', 'reports']);
+  private static readonly POS_PATHS = new Set(['pos', 'sales', 'customers', 'reports']);
 
   /**
    * The rail holds only the work an operator repeats through the day. Occasional jobs (Tools) and
@@ -109,6 +109,7 @@ export class Layout {
       items: [
         { label: 'Point of Sale', icon: 'pi pi-shopping-cart', path: 'pos' },
         { label: 'Sales', icon: 'pi pi-chart-line', path: 'sales' },
+        { label: 'Customers', icon: 'pi pi-users', path: 'customers' },
         { label: 'Sales Report', icon: 'pi pi-chart-bar', path: 'reports' },
         {
           label: 'Inventory Audit',
@@ -140,7 +141,7 @@ export class Layout {
     },
   ];
 
-  // POS items (Point of Sale, Sales, Sales Report) only show on plans that include the module.
+  // POS items (Point of Sale, Sales, Customers, Sales Report) only show on plans that include the module.
   // Sections left empty by the filter are dropped so no orphan caption renders.
   protected readonly navSections = computed<readonly NavSection[]>(() => {
     const canUsePos = this.entitlements.canUsePos();
